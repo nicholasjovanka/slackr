@@ -6,6 +6,7 @@ html, body {
     padding: 0;
     background-size: contain;
     background-position: center;
+    background-color: #F2F2F2;
     height: 100%;
 }
  
@@ -17,11 +18,6 @@ main {
 
 *, *:before, *:after {
     box-sizing: inherit;
-}
-
-#login-page {
-    height: 100%;
-    background-color: #F2F2F2;
 }
 
 .login-div{
