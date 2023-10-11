@@ -1,0 +1,30 @@
+/* base styles, feel free to edit */
+
+html, body {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    background-size: contain;
+    background-position: center;
+    height: 100%;
+}
+ 
+main {
+    height: inherit;
+    width: inherit;
+}
+
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+#login-page {
+    height: 100%;
+    background-color: #F2F2F2;
+}
+
+.login-div{
+    background-color: #FFFFFF;
+    border-radius: 5;
+}
