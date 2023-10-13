@@ -8,7 +8,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- You can add your styles and scripts here -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" type="text/css" media="screen" href="styles/global.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="styles/mobile.css" />
+  <link rel="stylesheet" type="text/css" media="screen" href="styles/tablet.css" />
   <script type="module" src="src/helpers.js"></script>
 </head>
 
@@ -57,7 +60,7 @@
                     <button id="login-page-register-button" type="button" class="btn btn-secondary w-100">Register</button>
                   </div>
                   <div class="col pe-0">
-                    <button type="submit" class="btn btn-outline-dark w-100">Login</button>
+                    <button id="login-page-login-button" type="submit" class="btn btn-outline-dark w-100">Login</button>
                   </div>
                 </div>
               </form>
@@ -73,7 +76,7 @@
     </div>
 
 
-    <div id="register-page" >
+    <div id="register-page" class="h-100 d-none">
       <div class="container-md h-100 mx-auto position-absolute top-50 start-50 translate-middle px-5 px-md-0 py-3">
         <div class="row h-100">
           <div class="col-md-2 d-none d-md-block">
@@ -105,7 +108,9 @@
                     Invalid password format.
                   </div>
                 </div>
-                <button id="register-page-submit-button" type="submit" class="btn btn-outline-dark w-100">Submit</button>
+                <button id="register-page-submit-button" type="submit" class="btn btn-outline-dark w-100">
+                  Submit
+                </button>
                 <a href="#" id="register-page-a-element" class="d-block fs-6 mt-3">Already Have an Account ? Go to the Login Page</a>
               </form>
             </div>
@@ -114,6 +119,49 @@
             </div>
           </div>
           <div class="col-md-2 d-none d-md-block">
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="main-page" class="h-100">
+      <div class="container-fluid h-100">
+        <div class="row h-10 align-items-center border border-secondary navbar align-items-center">
+          <div class="col-2 h-100">
+            <h1 class="display-4">Slackr</h1>
+          </div>
+          <div class="col-5 h-100">
+          </div>
+          <div class="col-5 h-100">
+            <button class="btn border border-0 float-end p-0 mx-3" aria-label="Profile Button"><i class="bi bi-person-circle fs-1 navbar-icon-button"></i></i></button>
+            <button class="btn border border-0 float-end p-0 me-3" aria-label="Notification Button"><i class="bi bi-bell fs-1 navbar-icon-button"></i></button>
+          </div>
+        </div>
+        <div class="row h-90">
+          <div class="col-2 ps-0">
+            <div id="channel-list-sidebar" class="h-90 slider slide-out">
+              <button id="open-button" class="btn btn-primary position-absolute top-50 start-100 translate-middle text-break p-0" title="View your Joined Channels"> > </button>
+              <div id="channel-list-content" class="h-100 p-1 scrollable-on-hover">
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+                <button class="btn rounded-circle border border-black channel-button">Test</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-8">
+       
+          </div>
+          <div class="col-2">
+
           </div>
         </div>
       </div>

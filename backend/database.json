@@ -15,6 +15,22 @@
       "bio": null,
       "image": null,
       "sessionActive": true
+    },
+    "97025": {
+      "email": "test3@gmail.com",
+      "name": "test",
+      "password": "1234",
+      "bio": null,
+      "image": null,
+      "sessionActive": true
+    },
+    "99446": {
+      "email": "test4@gmail.com",
+      "name": "test",
+      "password": "1234",
+      "bio": null,
+      "image": null,
+      "sessionActive": true
     }
   },
   "channels": {

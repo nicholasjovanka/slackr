@@ -1,31 +1,54 @@
-import { BACKEND_PORT } from './config.js';
 // A helper you may want to use when uploading new images to the server.
-import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator } from './helpers.js';
+import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator,apiCall} from './helpers.js';
 
 
 console.log('Let\'s go!');
 
+// window.addEventListener('resize', (e) => {
+//     console.log(window.innerWidth);
+// });
 
-//Login page
 let loginPageRegisterButton = document.getElementById('login-page-register-button');
-
 loginPageRegisterButton.addEventListener('click', (e) => {
     movePage('login-page', 'register-page');
+})
+
+let loginPageLoginButton = document.getElementById('login-page-login-button');
+let loginPageNameInput = document.getElementById('login-email-input');
+let loginPagePasswordInput = document.getElementById('login-password-input');
+
+
+loginPageLoginButton.addEventListener('click',(e) => {
+    e.preventDefault();
+    loginPageLoginButton.disabled = true;
+    let body = {
+        email: loginPageNameInput.value,
+        password: loginPagePasswordInput.value
+    }
+    let loginAPI = apiCall('auth/login','POST',body);
+    loginAPI.then( (response) => {
+        localStorage.setItem('token',`Bearer ${response.token}`);
+        localStorage.setItem('userId',response.userId)
+        movePage('login-page','main-page');
+    })
+    .catch((e) => {})
+    .finally( () => {
+        loginPageLoginButton.disabled = false;
+    });
 })
 
 
 
 
 //Register Page
-
-let registerNameInput = document.getElementById('register-name-input');
+let registerPageNameInput = document.getElementById('register-name-input');
 
 const validateRegisterPageNameInput = () => {
     let registerNameWarningDiv = document.getElementById('register-name-invalid-message');
-    emptyInputValidator(registerNameInput,registerNameWarningDiv,"Name");
+    emptyInputValidator(registerPageNameInput,registerNameWarningDiv,"Name");
 }
 
-registerNameInput.addEventListener('blur', (e) => {
+registerPageNameInput.addEventListener('blur', (e) => {
     validateRegisterPageNameInput();
 })
 
@@ -48,33 +71,33 @@ registerPageEmailInput.addEventListener('blur', (e) => {
     validateRegisterPageEmailInput();
 })
 
-let registerPasswordInput = document.getElementById('register-password-input');
-let registerConfirmPasswordInput = document.getElementById('register-confirm-password-input');
+let registerPagePasswordInput = document.getElementById('register-password-input');
+let registerPageConfirmPasswordInput = document.getElementById('register-confirm-password-input');
 
 const validateRegisterPagePasswordInput = () => {
     let registerPasswordWarningDiv = document.getElementById('register-password-invalid-message');
     let valid = true;
-    if(registerPasswordInput.value.length === 0 || registerConfirmPasswordInput.value.length === 0){
-        registerPasswordWarningDiv.innerHTML = `${registerPasswordInput.value.length === 0?'Password':'Confirm Password'} field cannot be empty`
+    if(registerPagePasswordInput.value.length === 0 || registerPageConfirmPasswordInput.value.length === 0){
+        registerPasswordWarningDiv.innerHTML = `${registerPagePasswordInput.value.length === 0?'Password':'Confirm Password'} field cannot be empty`
         valid = false;
     } else {
-        if(registerPasswordInput.value === registerConfirmPasswordInput.value) {
+        if(registerPagePasswordInput.value === registerPageConfirmPasswordInput.value) {
             valid = true;
         } else {
             valid = false;
             registerPasswordWarningDiv.innerHTML = "Password must be the same"
         }
     }
-    formInputElementValidator(registerPasswordInput, valid);
-    formInputElementValidator(registerConfirmPasswordInput, valid);
+    formInputElementValidator(registerPagePasswordInput, valid);
+    formInputElementValidator(registerPageConfirmPasswordInput, valid);
 
 }
 
-registerPasswordInput.addEventListener('blur', (e) => {
+registerPagePasswordInput.addEventListener('blur', (e) => {
     validateRegisterPagePasswordInput();
 })
 
-registerConfirmPasswordInput.addEventListener('blur', (e) => {
+registerPageConfirmPasswordInput.addEventListener('blur', (e) => {
     validateRegisterPagePasswordInput();
 })
 
@@ -86,25 +109,48 @@ registerPageLoginHyperLink.addEventListener('click', (e) => {
     movePage('register-page','login-page');
 })
 
-
 let registerPageButton = document.getElementById('register-page-submit-button');
+
 registerPageButton.addEventListener('click', (e) => {
-    validateRegisterPageNameInput();
-    validateRegisterPageEmailInput();
-    validateRegisterPagePasswordInput();
-    // e.preventDefault();
-    // showWarningModal('Error','SOMETHING');
+    e.preventDefault();
+    registerPageButton.disabled = true;
+    if(registerPagePasswordInput.value === registerPageConfirmPasswordInput.value){
+        let body = {
+            name: registerPageNameInput.value,
+            email: registerPageEmailInput.value,
+            password: registerPagePasswordInput.value
+        }
+        let registerApi = apiCall('auth/register','POST',body);
+        registerApi.then( (response) => {
+            localStorage.setItem('token',`Bearer ${response.token}`);
+            localStorage.setItem('userId',response.token)
+            movePage('register-page','main-page');
+        })
+        .catch( (e) => {})
+        .finally( () => {
+            registerPageButton.disabled = false;
+        });
+    } else {
+        showWarningModal('Error','The Password Field and the Confirm Password Field does not have the same value');
+    }
+})
+
+//Main page
+let openButton = document.getElementById('open-button');
+let channelBar = document.getElementById('channel-list-sidebar');
+openButton.addEventListener('click',(e) => {
+    let isOpen = channelBar.classList.contains('slide-in');
+    if(isOpen){
+        channelBar.classList.remove('slide-in');
+        channelBar.classList.add('slide-out');
+        openButton.innerHTML = " > ";
+    } else {
+        channelBar.classList.remove('slide-out');
+        channelBar.classList.add('slide-in');
+        openButton.innerHTML = " < ";
+    }
 })
 
 
 
 
-
-
-
-let loginForm = document.getElementById('registration-form');
-
-loginForm.addEventListener('submit',(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-}, false)

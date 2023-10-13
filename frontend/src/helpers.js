@@ -13,6 +13,9 @@
  * @param {File} file The file to be read.
  * @return {Promise<string>} Promise which resolves to the file as a data url.
  */
+
+import { BACKEND_PORT } from "./config.js";
+
 export function fileToDataUrl(file) {
     const validFileTypes = [ 'image/jpeg', 'image/png', 'image/jpg' ]
     const valid = validFileTypes.find(type => type === file.type);
@@ -74,6 +77,36 @@ export const emptyInputValidator = (inputElement,warningElement,fieldName ,trim 
         formInputElementValidator(inputElement, true);
         return false;
     }
+}
+
+export const apiCall = (path, method, body = null ,queryString = null) => {
+    return new Promise( (resolve,reject) => {
+        let urlString = `http://localhost:${BACKEND_PORT}/${path}${queryString!==null?`?${queryString}`:""}`;
+        let token = localStorage.getItem('token');
+        let options = {
+            method,
+            headers: {
+                'Content-type': 'application/json',
+                ...(token !== null && {'Authorization':token})
+            },
+            ...(body !== null && {body:JSON.stringify(body)})
+        }
+        let apiObj = fetch(urlString,options);
+        apiObj
+        .then((response) => response.json())
+        .then((data) => {
+            let apiCallSuccess = true;
+            if(data.error){
+                showWarningModal('Error',data.error)
+                reject(`${data.error}`);
+            } else {
+                resolve(data);
+            }
+        })
+        .catch((e) => {
+            showWarningModal('Server Error', e)
+        })
+    })
 }
 
 // export const checkValidPasswordInput = (inputElement1, inputElement2) => {
