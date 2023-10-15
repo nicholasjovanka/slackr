@@ -26,24 +26,25 @@ main {
 }
 
 #channel-list-sidebar{
-    background-color: aqua;
+    background-color: #313338;
 }
 
-#channel-list-content{
-    background-color: beige;
+#channel-list-section{
+    /* background-color: beige; */
+    height: 48.5%;
 }
+
+/* #channel-list-public, #channel-list-private {
+    background-color: darkblue;
+} */
+
 
 .scrollable-on-hover {
-    overflow-y: hidden;
+    overflow: hidden;
 }
 
 .scrollable-on-hover:hover{
-    overflow-y: scroll;
-}
-
-.channel-button{
-    aspect-ratio: 1/1;
-    width: 90%;
+    overflow: scroll;
 }
 
 /* Height and Width Class that Bootstrap doesnt provide */

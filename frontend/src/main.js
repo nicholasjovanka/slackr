@@ -1,5 +1,5 @@
 // A helper you may want to use when uploading new images to the server.
-import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator,apiCall} from './helpers.js';
+import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator,apiCall, createChannelListDiv, createBasicModalStructure, createForm} from './helpers.js';
 
 
 console.log('Let\'s go!');
@@ -61,7 +61,7 @@ const validateRegisterPageEmailInput = () => {
     if(!isEmpty) {
         let emailIsValid = checkEmail(registerPageEmailInput.value);
         if (!emailIsValid) {
-            registerEmailWarningDiv.innerHTML = "Wrong Email Format";
+            registerEmailWarningDiv.textContent = "Wrong Email Format";
         }
         formInputElementValidator(registerPageEmailInput, emailIsValid);
     }
@@ -78,14 +78,14 @@ const validateRegisterPagePasswordInput = () => {
     let registerPasswordWarningDiv = document.getElementById('register-password-invalid-message');
     let valid = true;
     if(registerPagePasswordInput.value.length === 0 || registerPageConfirmPasswordInput.value.length === 0){
-        registerPasswordWarningDiv.innerHTML = `${registerPagePasswordInput.value.length === 0?'Password':'Confirm Password'} field cannot be empty`
+        registerPasswordWarningDiv.textContent = `${registerPagePasswordInput.value.length === 0?'Password':'Confirm Password'} field cannot be empty`
         valid = false;
     } else {
         if(registerPagePasswordInput.value === registerPageConfirmPasswordInput.value) {
             valid = true;
         } else {
             valid = false;
-            registerPasswordWarningDiv.innerHTML = "Password must be the same"
+            registerPasswordWarningDiv.textContent = "Password must be the same"
         }
     }
     formInputElementValidator(registerPagePasswordInput, valid);
@@ -136,6 +136,73 @@ registerPageButton.addEventListener('click', (e) => {
 })
 
 //Main page
+localStorage.setItem('token', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5OTQ0NiIsImlhdCI6MTY5NzM1NDg3NX0.ujbOdP_Zdc3AF-u3mQo0CH7hKIx_-cYXcADdSeF0C5A')
+localStorage.setItem('userId', '99446');
+
+
+let createChannelButton = document.getElementById('create-channel-button');
+createChannelButton.addEventListener('click', (e) => {
+    let modal = createBasicModalStructure();
+    let modalHeader = modal.children[0].children[0].children[0];
+    let modalBody = modal.children[0].children[0].children[1];
+    let modalFooter = modal.children[0].children[0].children[2];
+    modalHeader.children[0].textContent = "Create New Channel";
+    let createChannelFormFormat = [
+        {
+            type: 'input',
+            name: 'Channel Name',
+            attributes: {
+                type: 'text',
+                class: 'form-control mb-2',
+                id: 'create-channel-name-field'
+            }
+        },
+        {
+            type: 'input',
+            name: 'Channel Description',
+            attributes: {
+                type: 'text',
+                class: 'form-control mb-2',
+                id: 'create-channel-description-field'
+            }
+        },
+        {
+            type: 'select',
+            name: 'Choose your Channel Type',
+            attributes: {
+                type: 'select',
+                class: 'form-select',
+                id: 'create-channel-channel-type',
+                aria_label: 'Channel type selection'
+            },
+            selectOptions: [
+                {
+                    displayText: "Public",
+                    attributes: {
+                        value: "public",
+                        selected: ''
+                    }
+                },
+                {
+                    displayText: "Private",
+                    attributes: {
+                        value: "private"
+                    }
+                }
+            ]
+
+        }
+    ]
+    let formObj = createForm(createChannelFormFormat);
+    modalBody.appendChild(formObj);
+
+
+    const myModal = new bootstrap.Modal(modal);
+    myModal.show();
+    console.log(modal.children);
+})
+
+
 let openButton = document.getElementById('open-button');
 let channelBar = document.getElementById('channel-list-sidebar');
 openButton.addEventListener('click',(e) => {
@@ -143,14 +210,30 @@ openButton.addEventListener('click',(e) => {
     if(isOpen){
         channelBar.classList.remove('slide-in');
         channelBar.classList.add('slide-out');
-        openButton.innerHTML = " > ";
+        openButton.textContent = " > ";
     } else {
         channelBar.classList.remove('slide-out');
         channelBar.classList.add('slide-in');
-        openButton.innerHTML = " < ";
+        openButton.textContent = " < ";
     }
 })
 
 
 
+const getAllChannels = () => {
+    let publicChannelDiv = document.getElementById('channel-list-public');
+    let privateChannelDiv = document.getElementById('channel-list-private');
+    let channelResponse = apiCall('channel','GET')
+    channelResponse.then( (response) => {
+        console.log(response);
+        let publicChannels = response.channels.filter((obj) => obj.private === false);
+        console.log(publicChannels);
+        let privateChannels = response.channels.filter((obj) => obj.private === true);
+        let publicChannelUl = createChannelListDiv(publicChannels);
+        let privateChannelUl = createChannelListDiv(privateChannels);
+        publicChannelDiv.appendChild(publicChannelUl);
+        privateChannelDiv.appendChild(privateChannelUl);
 
+    })
+    .catch((e) => {})
+}

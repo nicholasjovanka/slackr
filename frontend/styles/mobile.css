@@ -34,10 +34,10 @@
     }
 
     #channel-list-sidebar{
-        width: 20%;
+        width: 40%;
     }
 
-    #channel-list-content{
+    #channel-list-section{
         width: 97%;
     }
 
@@ -46,7 +46,7 @@
     }
 
     #open-button{
-        width: 30%;
+        width: 20%;
         height: 5%;
     }
 }
