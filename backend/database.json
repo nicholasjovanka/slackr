@@ -34,6 +34,37 @@
     }
   },
   "channels": {
+    "441058": {
+      "name": "Nicholas Private Channel",
+      "creator": 99446,
+      "private": true,
+      "description": "awadaw",
+      "createdAt": "2023-10-16T04:46:59.128Z",
+      "members": [
+        99446
+      ],
+      "messages": []
+    },
+    "734061": {
+      "name": "New Channel 2",
+      "creator": 99446,
+      "private": false,
+      "description": "Editted Description",
+      "createdAt": "2023-10-16T05:08:38.921Z",
+      "members": [],
+      "messages": []
+    },
+    "795035": {
+      "name": "New Channel 2",
+      "creator": 99446,
+      "private": false,
+      "description": "",
+      "createdAt": "2023-10-16T05:17:12.980Z",
+      "members": [
+        99446
+      ],
+      "messages": []
+    },
     "813580": {
       "name": "public channel",
       "creator": 15272,
@@ -467,6 +498,26 @@
           "reacts": []
         }
       ]
+    },
+    "857820": {
+      "name": "Nicholas Private Channel 2 2",
+      "creator": 99446,
+      "private": false,
+      "description": "",
+      "createdAt": "2023-10-16T11:18:47.189Z",
+      "members": [],
+      "messages": []
+    },
+    "904903": {
+      "name": "test",
+      "creator": 99446,
+      "private": false,
+      "description": "awadaw",
+      "createdAt": "2023-10-16T04:46:13.349Z",
+      "members": [
+        99446
+      ],
+      "messages": []
     }
   },
   "nextMessageId": 43

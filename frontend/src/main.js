@@ -1,5 +1,5 @@
 // A helper you may want to use when uploading new images to the server.
-import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator,apiCall, createChannelListDiv, createBasicModalStructure, createForm} from './helpers.js';
+import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator,apiCall, getAllChannels, createBasicModalStructure, createForm, getChannelDetails, refreshChannelContent} from './helpers.js';
 
 
 console.log('Let\'s go!');
@@ -31,7 +31,6 @@ loginPageLoginButton.addEventListener('click',(e) => {
         localStorage.setItem('userId',response.userId)
         movePage('login-page','main-page');
     })
-    .catch((e) => {})
     .finally( () => {
         loginPageLoginButton.disabled = false;
     });
@@ -136,6 +135,23 @@ registerPageButton.addEventListener('click', (e) => {
 })
 
 //Main page
+let openButton = document.getElementById('open-button');
+let channelBar = document.getElementById('channel-list-sidebar');
+openButton.addEventListener('click',(e) => {
+    let isOpen = channelBar.classList.contains('slide-in');
+    if(isOpen){
+        channelBar.classList.remove('slide-in');
+        channelBar.classList.add('slide-out');
+        openButton.textContent = " > ";
+    } else {
+        channelBar.classList.remove('slide-out');
+        channelBar.classList.add('slide-in');
+        openButton.textContent = " < ";
+    }
+})
+
+
+
 localStorage.setItem('token', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5OTQ0NiIsImlhdCI6MTY5NzM1NDg3NX0.ujbOdP_Zdc3AF-u3mQo0CH7hKIx_-cYXcADdSeF0C5A')
 localStorage.setItem('userId', '99446');
 
@@ -143,10 +159,11 @@ localStorage.setItem('userId', '99446');
 let createChannelButton = document.getElementById('create-channel-button');
 createChannelButton.addEventListener('click', (e) => {
     let modal = createBasicModalStructure();
+    let myModal = new bootstrap.Modal(modal);
     let modalHeader = modal.children[0].children[0].children[0];
     let modalBody = modal.children[0].children[0].children[1];
     let modalFooter = modal.children[0].children[0].children[2];
-    modalHeader.children[0].textContent = "Create New Channel";
+    modalHeader.children[0].textContent = 'Create New Channel';
     let createChannelFormFormat = [
         {
             type: 'input',
@@ -179,14 +196,14 @@ createChannelButton.addEventListener('click', (e) => {
                 {
                     displayText: "Public",
                     attributes: {
-                        value: "public",
+                        value: 'public',
                         selected: ''
                     }
                 },
                 {
                     displayText: "Private",
                     attributes: {
-                        value: "private"
+                        value: 'private'
                     }
                 }
             ]
@@ -195,45 +212,27 @@ createChannelButton.addEventListener('click', (e) => {
     ]
     let formObj = createForm(createChannelFormFormat);
     modalBody.appendChild(formObj);
-
-
-    const myModal = new bootstrap.Modal(modal);
+    let createButton = document.createElement('button');
+    createButton.setAttribute('class', 'btn btn-primary');
+    createButton.textContent = "Create Channel";
+    createButton.addEventListener('click', (e) => {
+        let channelName = document.getElementById('create-channel-name-field').value;
+        let channelDescription = document.getElementById('create-channel-description-field').value;
+        let channelType = document.getElementById('create-channel-channel-type').value;
+        let request = {
+            name: channelName,
+            description: channelDescription.trim().length > 0? channelDescription: '',
+            private: channelType === 'private'?true:false
+        }
+        let createChannelRequest = apiCall('channel','POST',request);
+        createChannelRequest.then( (response) => {
+            refreshChannelContent(`${response.channelId}`,myModal)
+        });
+    })
+    modalFooter.prepend(createButton);
     myModal.show();
     console.log(modal.children);
 })
 
+getAllChannels().catch((e) => {});
 
-let openButton = document.getElementById('open-button');
-let channelBar = document.getElementById('channel-list-sidebar');
-openButton.addEventListener('click',(e) => {
-    let isOpen = channelBar.classList.contains('slide-in');
-    if(isOpen){
-        channelBar.classList.remove('slide-in');
-        channelBar.classList.add('slide-out');
-        openButton.textContent = " > ";
-    } else {
-        channelBar.classList.remove('slide-out');
-        channelBar.classList.add('slide-in');
-        openButton.textContent = " < ";
-    }
-})
-
-
-
-const getAllChannels = () => {
-    let publicChannelDiv = document.getElementById('channel-list-public');
-    let privateChannelDiv = document.getElementById('channel-list-private');
-    let channelResponse = apiCall('channel','GET')
-    channelResponse.then( (response) => {
-        console.log(response);
-        let publicChannels = response.channels.filter((obj) => obj.private === false);
-        console.log(publicChannels);
-        let privateChannels = response.channels.filter((obj) => obj.private === true);
-        let publicChannelUl = createChannelListDiv(publicChannels);
-        let privateChannelUl = createChannelListDiv(privateChannels);
-        publicChannelDiv.appendChild(publicChannelUl);
-        privateChannelDiv.appendChild(privateChannelUl);
-
-    })
-    .catch((e) => {})
-}

@@ -116,17 +116,17 @@
             <button id="create-channel-button" class="btn btn-secondary btn-sm flex-grow-1">Create Channel</button>
           </div>
           <div class="col-4 h-100 d-flex align-items-center justify-content-end">
-            <button class="btn border border-0 p-0 me-2" aria-label="Notification Button"><i class="bi bi-bell fs-1 navbar-icon-button"></i></button>
-            <button class="btn border border-0 p-0 mx-2" aria-label="Profile Button"><i class="bi bi-person-circle fs-1 navbar-icon-button"></i></i></button>
+            <button class="btn border border-0 p-0 me-2 focus-ring" aria-label="Notification Button"><i class="bi bi-bell fs-1 navbar-icon-button"></i></button>
+            <button class="btn border border-0 p-0 mx-2 focus-ring" aria-label="Profile Button"><i class="bi bi-person-circle fs-1 navbar-icon-button"></i></i></button>
           </div>
         </div>
         <div class="row h-90">
-          <div class="col-2 ps-0">
-            <div id="channel-list-sidebar" class="h-90 slider slide-out">
-              <button id="open-button" class="btn btn-primary position-absolute top-50 start-100 translate-middle text-break p-0" title="View your Joined Channels"> > </button>
-              <div id="channel-list-section" class="p-1 my-2 d-flex flex-column">
+          <div class="col-2 ps-0 h-100">
+            <div id="channel-list-sidebar" class="slider slide-out">
+              <button id="open-button" class="btn btn-primary position-absolute top-50 start-100 translate-middle text-break p-0 d-md-none" title="View your Joined Channels"> > </button>
+              <div id="channel-list-section" class="p-1 my-2 my-md-0 d-flex flex-column">
                 <h6 class="text-light">Public Channels</h6>
-                <div id="channel-list-public" class="flex-grow-1 scrollable-on-hover channel-list-content p-1">
+                <div id="channel-list-public" class="flex-grow-1 scrollable-on-hover p-1">
                   
                 </div>
               </div>
@@ -138,13 +138,10 @@
               </div>
             </div>
           </div>
-          <div class="col-7">
+          <div class="col-7 col-md-7 h-100">
           </div>
-          <div class="col-3 border border-dark border-top-0 p-0">
-            <div id="channel-page-section" class="d-flex flex-column w-100 h-100 p-2">
-              <h5> Channel Name</h5>
-              <div class="flex-grow-1 scrollable-on-hover channel-list-content p-1">
-              </div>
+          <div class="col-3 col-md-3 border border-dark border-top-0 p-0 h-100">
+            <div id="channel-page-section" class="bg-light w-100 h-100 align-top scrollable-on-hover px-1">
             </div>
           </div>
         </div>
