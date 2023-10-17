@@ -1,5 +1,5 @@
 // A helper you may want to use when uploading new images to the server.
-import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator,apiCall, getAllChannels, createBasicModalStructure, createForm, getChannelDetails, refreshChannelContent} from './helpers.js';
+import { fileToDataUrl, showWarningModal,movePage,checkEmail, formInputElementValidator, emptyInputValidator,apiCall, getAllChannels, createBasicModalStructure, createForm, getChannelDetails, refreshChannelContent, createMessage} from './helpers.js';
 
 
 console.log('Let\'s go!');
@@ -235,4 +235,67 @@ createChannelButton.addEventListener('click', (e) => {
 })
 
 getAllChannels().catch((e) => {});
+let contentWindow = document.getElementById('channel-messages');
+document.getElementById('notification-button').addEventListener('click', (e) => {
+    createMessage();
+    console.log(contentWindow.scrollTop);
+    console.log(`Element Scroll height is ${contentWindow.scrollHeight}`);
+    console.log(`Element height + scroll is ${contentWindow.offsetHeight + contentWindow.scrollTop}`);
+})
 
+const cardLimit = 99;
+const cardIncrease = 9;
+const pageCount = Math.ceil(cardLimit / cardIncrease);
+let currentPage = 1;
+
+var throttleTimer;
+const throttle = (callback, time) => {
+  if (throttleTimer) return;
+
+  throttleTimer = true;
+
+  setTimeout(() => {
+    callback();
+    throttleTimer = false;
+  }, time);
+};
+
+
+const addCards = (pageIndex) => {
+    currentPage = pageIndex;
+  
+    const startRange = (pageIndex - 1) * cardIncrease;
+    const endRange =
+      currentPage == pageCount ? cardLimit : pageIndex * cardIncrease;
+  
+    for (let i = startRange + 1; i <= endRange; i++) {
+      createMessage();
+    }
+  };
+  
+  const handleInfiniteScroll = () => {
+    let spinner = document.getElementById('chatbox-spinner');
+    throttle(() => {
+      let endOfPage = contentWindow.offsetHeight + contentWindow.scrollTop >= (contentWindow.scrollHeight - spinner.offsetHeight);
+      if (endOfPage) {
+        spinner.classList.remove('invisible');
+        spinner.classList.add('visible');
+        setTimeout( () => {
+            addCards(currentPage + 1);
+            console.log(currentPage);
+            spinner.classList.remove('visible');
+            spinner.classList.add('invisible');
+        },1000)
+      }
+  
+      if (currentPage === pageCount) {
+        removeInfiniteScroll();
+      }
+    }, 1000);
+  };
+  
+  const removeInfiniteScroll = () => {
+    contentWindow.removeEventListener("scroll", handleInfiniteScroll);
+  };
+  
+  contentWindow.addEventListener("scroll", handleInfiniteScroll);

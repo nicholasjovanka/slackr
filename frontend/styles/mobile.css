@@ -46,8 +46,49 @@
         width: 95%;
     }
 
-    #open-button{
+    #open-button {
         width: 20%;
         height: 5%;
+    }
+    
+    #channel-messages {
+        height: 86%;
+        width: 100%;
+        background-color: aqua;
+    }
+
+    #channel-input-div {
+        height: 14%;
+        background-color:bisque;
+    }
+
+    .message-chatbox{
+        height: auto;
+        width: 98%;
+        background-color: blue;
+    }
+
+    
+    .message-user-picture-section{
+        width: 25%;
+        background-color: wheat;
+    }
+
+    .message-user-picture{
+        width: 80%;
+        aspect-ratio: 1 / 1;    
+        background-image: url('../assets/user.svg');
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+
+    .message-content-section{
+        width: 75%;
+    }
+    
+    .image-content{
+        width: 40%;
+        aspect-ratio: 1/1;
+        background-image: url('../assets/user.svg');
     }
 }

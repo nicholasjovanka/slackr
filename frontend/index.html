@@ -116,12 +116,12 @@
             <button id="create-channel-button" class="btn btn-secondary btn-sm flex-grow-1">Create Channel</button>
           </div>
           <div class="col-4 h-100 d-flex align-items-center justify-content-end">
-            <button class="btn border border-0 p-0 me-2 focus-ring" aria-label="Notification Button"><i class="bi bi-bell fs-1 navbar-icon-button"></i></button>
-            <button class="btn border border-0 p-0 mx-2 focus-ring" aria-label="Profile Button"><i class="bi bi-person-circle fs-1 navbar-icon-button"></i></i></button>
+            <button id="notification-button" class="btn border border-0 p-0 me-2 focus-ring navbar-icon-button" aria-label="Notification Button"><i class="bi bi-bell fs-1"></i></button>
+            <button class="btn border border-0 p-0 mx-2 focus-ring navbar-icon-button" aria-label="Profile Button"><i class="bi bi-person-circle fs-1"></i></i></button>
           </div>
         </div>
         <div class="row h-90">
-          <div class="col-2 ps-0 h-100">
+          <div class="col-1 col-md-2 ps-0 h-100">
             <div id="channel-list-sidebar" class="slider slide-out">
               <button id="open-button" class="btn btn-primary position-absolute top-50 start-100 translate-middle text-break p-0 d-md-none" title="View your Joined Channels"> > </button>
               <div id="channel-list-section" class="p-1 my-2 my-md-0 d-flex flex-column">
@@ -138,7 +138,51 @@
               </div>
             </div>
           </div>
-          <div class="col-7 col-md-7 h-100">
+          <div class="col-8 col-md-7 h-100 pe-0">
+            <div id="channel-content-div" class="border border-dark border-top-0 border-end-0 h-100 w-100">
+              <div id="channel-messages" class="w-100 pt-1 d-flex flex-column overflow-y-scroll gap-3">
+                <div class="message-chatbox d-flex flex-row">
+                  <div class="message-user-picture-section">
+                    <div class="message-user-picture rounded-circle m-1 border  border-dark">
+                    </div>
+                  </div>
+                  <div class="message-content-section d-flex flex-column">
+                    <div class="mb-2 d-flex flex-row">
+                      <h6 class="me-4">Ivan</h6>
+                      <p> Sent 5 pm</p>
+                    </div>
+                    <div class="message-content text-wrap flex-grow-1">
+                      <!-- <p class="fs-6"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam</p> -->
+                      <div class="image-content">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="message-chatbox d-flex flex-row">
+                  <div class="message-user-picture-section">
+                    <div class="message-user-picture rounded-circle m-1 border  border-dark">
+                    </div>
+                  </div>
+                  <div class="message-content-section d-flex flex-column">
+                    <div class="mb-2 d-flex flex-row">
+                      <h6 class="me-4">Ivan</h6>
+                      <p> Sent 5 pm</p>
+                    </div>
+                    <div class="message-content text-wrap flex-grow-1">
+                      <!-- <p class="fs-6"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam</p> -->
+                      <div class="image-content">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="spinner-border d-flex invisible" role="status" id="chatbox-spinner">
+                </div>
+              </div>
+              <div id="channel-input-div" class="w-100">
+
+              </div>
+
+            </div>
           </div>
           <div class="col-3 col-md-3 border border-dark border-top-0 p-0 h-100">
             <div id="channel-page-section" class="bg-light w-100 h-100 align-top scrollable-on-hover px-1">

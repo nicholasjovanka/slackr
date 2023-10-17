@@ -34,6 +34,14 @@ main {
     height: 48.5%;
 }
 
+.navbar-icon-button{
+    height: 100%;
+    width: 25%;
+}
+
+
+
+
 /* #channel-list-public, #channel-list-private {
     background-color: darkblue;
 } */

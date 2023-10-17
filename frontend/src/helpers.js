@@ -33,41 +33,11 @@ export function fileToDataUrl(file) {
     return dataUrlPromise;
 }
 
-export const movePage = (currentPage, destinationPage) => {
-    let currentPageElement = document.getElementById(currentPage);
-    let destinationPageElement = document.getElementById(destinationPage);
-    destinationPageElement.classList.remove('d-none');
-    currentPageElement.classList.add('d-none')
-}
-
 export const checkEmail = (email) => {
     let regexp = new RegExp(/^(([^<>()\[\]\\.,;:\s@']+(\.[^<>()\[\]\\.,;:\s@']+)*)|('.+'))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
     return regexp.test(email.trim());
 }
 
-export const formInputElementValidator = (inputElement, isValid) => {
-    if(isValid){
-        inputElement.classList.remove('is-invalid');
-        inputElement.classList.add('is-valid');
-    } else {
-        inputElement.classList.remove('is-valid');
-        inputElement.classList.add('is-invalid');
-    }
-}
-
-export const emptyInputValidator = (inputElement,warningElement,fieldName ,trim = true) => {
-    let inputValue = trim?inputElement.value.trim():inputElement.value;
-    if(inputValue.length === 0){
-        if(warningElement !== null){
-            warningElement.textContent = `${fieldName} cannot be empty`
-        }
-        formInputElementValidator(inputElement, false);
-        return true;
-    } else {
-        formInputElementValidator(inputElement, true);
-        return false;
-    }
-}
 
 export const apiCall = (path, method, body = null ,queryString = null) => {
     return new Promise( (resolve, reject) => {
@@ -95,6 +65,40 @@ export const apiCall = (path, method, body = null ,queryString = null) => {
             showWarningModal('Server Error', e)
         })
     })
+}
+
+
+export const movePage = (currentPage, destinationPage) => {
+    let currentPageElement = document.getElementById(currentPage);
+    let destinationPageElement = document.getElementById(destinationPage);
+    destinationPageElement.classList.remove('d-none');
+    currentPageElement.classList.add('d-none')
+}
+
+
+
+export const formInputElementValidator = (inputElement, isValid) => {
+    if(isValid){
+        inputElement.classList.remove('is-invalid');
+        inputElement.classList.add('is-valid');
+    } else {
+        inputElement.classList.remove('is-valid');
+        inputElement.classList.add('is-invalid');
+    }
+}
+
+export const emptyInputValidator = (inputElement,warningElement,fieldName ,trim = true) => {
+    let inputValue = trim?inputElement.value.trim():inputElement.value;
+    if(inputValue.length === 0){
+        if(warningElement !== null){
+            warningElement.textContent = `${fieldName} cannot be empty`
+        }
+        formInputElementValidator(inputElement, false);
+        return true;
+    } else {
+        formInputElementValidator(inputElement, true);
+        return false;
+    }
 }
 
 export const getListOfUserDetails = (userIdList) => {
@@ -177,7 +181,6 @@ export const showWarningModal = (title,message) => {
     modalHeader.classList.add('text-warning');
     modalHeader.children[0].textContent = "Error";
     modalBody.textContent = message;
-    // let modal = document.getElementById('warning-modal');
     let modal = modalBasic;
     const myModal = new bootstrap.Modal(modal)
     myModal.show();
@@ -490,8 +493,40 @@ export const getAllChannels = () => {
     })
 }
 
+export const createMessage = () => {
+    let spinner = document.getElementById('chatbox-spinner');
+    let messagesDiv = document.getElementById('channel-messages');
+    let chatboxDiv = document.createElement('div');
+    chatboxDiv.setAttribute('class','message-chatbox d-flex flex-row');
+    
+    let messagePictureSection = document.createElement('div');
+    messagePictureSection.setAttribute('class','message-user-picture-section');
 
+    let userProfilePictureDiv = document.createElement('div');
+    userProfilePictureDiv.setAttribute('class','message-user-picture rounded-circle m-1 border  border-dark');
+    
+    let messageContentSectionDiv = document.createElement('div');
+    messageContentSectionDiv.setAttribute('class','message-content-section d-flex flex-column');
+    
+    let messageHeaderSection = document.createElement('div');
+    messageHeaderSection.setAttribute('class','mb-2 d-flex flex-row');
+    
+    let messageContentSection = document.createElement('div');
+    messageContentSection.setAttribute('class','message-content text-wrap flex-grow-1');
 
-// export const checkValidPasswordInput = (inputElement1, inputElement2) => {
-//     if(i)
-// }
+    let name = document.createElement('h6');
+    name.setAttribute('class','me-4');
+    name.textContent = "User";
+
+    let bodyText = document.createElement('p');
+    bodyText.textContent = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam';
+
+    messageContentSection.appendChild(bodyText);
+    messageHeaderSection.appendChild(name);
+    messageContentSectionDiv.appendChild(messageHeaderSection);
+    messageContentSectionDiv.appendChild(messageContentSection);
+    messagePictureSection.appendChild(userProfilePictureDiv);
+    chatboxDiv.appendChild(messagePictureSection);
+    chatboxDiv.appendChild(messageContentSectionDiv);
+    messagesDiv.insertBefore(chatboxDiv,spinner);
+}
