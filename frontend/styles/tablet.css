@@ -37,4 +37,36 @@
         0% { -webkit-transform: translateX(0%); }
         100% { -webkit-transform: translateX(0%); }
     }
+
+    #channel-messages {
+        height: 90%;
+    }
+
+    #channel-input-div {
+        height: 10%;
+    }
+
+    .message-chatbox{
+        height: auto;
+        width: 100%;
+    }
+
+    .message-user-picture-section{
+        width: 7%;
+    }
+
+    .message-user-picture{
+        width: 80%;
+        aspect-ratio: 1 / 1;    
+    }
+
+    .message-content-section{
+        width: 90%;
+    }
+    
+    .image-content{
+        width: 15%;
+        aspect-ratio: 1/1;
+        background-image: url('../assets/user.svg');
+    }
 }

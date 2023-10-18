@@ -234,7 +234,7 @@
           "sentAt": "2021-09-13T08:00:03.851Z",
           "edited": false,
           "editedAt": null,
-          "pinned": false,
+          "pinned": true,
           "reacts": []
         },
         {
@@ -304,7 +304,7 @@
           "sentAt": "2021-09-13T08:00:03.679Z",
           "edited": false,
           "editedAt": null,
-          "pinned": false,
+          "pinned": true,
           "reacts": []
         },
         {
@@ -404,7 +404,7 @@
           "sentAt": "2021-09-13T08:00:03.482Z",
           "edited": false,
           "editedAt": null,
-          "pinned": false,
+          "pinned": true,
           "reacts": []
         },
         {
@@ -494,7 +494,7 @@
           "sentAt": "2021-09-13T08:00:03.296Z",
           "edited": false,
           "editedAt": null,
-          "pinned": false,
+          "pinned": true,
           "reacts": []
         }
       ]

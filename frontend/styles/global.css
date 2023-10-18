@@ -35,17 +35,19 @@ main {
 }
 
 .navbar-icon-button{
-    height: 100%;
-    width: 25%;
+    aspect-ratio: 1/1;
+    width: 1.5em;
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 
+#notification-button{
+    background-image: url('../assets/notification.svg');
+}
 
-
-
-/* #channel-list-public, #channel-list-private {
-    background-color: darkblue;
-} */
-
+#profile-button{
+    background-image: url('../assets/user.svg');
+}
 
 .scrollable-on-hover {
     overflow: hidden;

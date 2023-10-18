@@ -54,24 +54,21 @@
     #channel-messages {
         height: 86%;
         width: 100%;
-        background-color: aqua;
     }
 
     #channel-input-div {
         height: 14%;
-        background-color:bisque;
+        background-color: aquamarine;
     }
 
     .message-chatbox{
         height: auto;
-        width: 98%;
-        background-color: blue;
+        width: 100%;
     }
 
     
     .message-user-picture-section{
         width: 25%;
-        background-color: wheat;
     }
 
     .message-user-picture{
@@ -87,8 +84,15 @@
     }
     
     .image-content{
-        width: 40%;
+        width: 60%;
         aspect-ratio: 1/1;
-        background-image: url('../assets/user.svg');
+        background-image: url('../assets/background.jpg');
+        background-size: contain;
+        background-repeat: no-repeat;
     }
+
+    .emoji-button{
+        font-size: 1rem;
+    }
+
 }

@@ -116,8 +116,8 @@
             <button id="create-channel-button" class="btn btn-secondary btn-sm flex-grow-1">Create Channel</button>
           </div>
           <div class="col-4 h-100 d-flex align-items-center justify-content-end">
-            <button id="notification-button" class="btn border border-0 p-0 me-2 focus-ring navbar-icon-button" aria-label="Notification Button"><i class="bi bi-bell fs-1"></i></button>
-            <button class="btn border border-0 p-0 mx-2 focus-ring navbar-icon-button" aria-label="Profile Button"><i class="bi bi-person-circle fs-1"></i></i></button>
+            <button id="notification-button" class="btn border border-radius border-dark rounded-circle p-0 mx-2 focus-ring navbar-icon-button fs-3" aria-label="Notification Button"></button>
+            <button id="profile-button" class="btn border border-radius border-dark rounded-circle p-0 mx-2 focus-ring navbar-icon-button fs-3" aria-label="Profile Button"></button>
           </div>
         </div>
         <div class="row h-90">
@@ -140,42 +140,34 @@
           </div>
           <div class="col-8 col-md-7 h-100 pe-0">
             <div id="channel-content-div" class="border border-dark border-top-0 border-end-0 h-100 w-100">
-              <div id="channel-messages" class="w-100 pt-1 d-flex flex-column overflow-y-scroll gap-3">
-                <div class="message-chatbox d-flex flex-row">
+              <div id="channel-messages" class="w-100 pt-1 d-flex flex-column overflow-y-scroll gap-4">
+                <div class="message-chatbox d-flex flex-row flex-wrap border-top border-bottom border-dark px-2">
                   <div class="message-user-picture-section">
-                    <div class="message-user-picture rounded-circle m-1 border  border-dark">
+                    <div class="message-user-picture rounded-circle m-1 border border-dark">
                     </div>
                   </div>
                   <div class="message-content-section d-flex flex-column">
-                    <div class="mb-2 d-flex flex-row">
-                      <h6 class="me-4">Ivan</h6>
-                      <p> Sent 5 pm</p>
+                    <div class="pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle text-wrap">
+                      <p class="me-4 mb-0 fs-6">Ivan</p>
+                      <p class="mb-0 fs-6 text-secondary"> Sent 5 pm aaaa aaaaa aaaa</p>
                     </div>
-                    <div class="message-content text-wrap flex-grow-1">
+                    <div class="message-content text-wrap py-1">
                       <!-- <p class="fs-6"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam</p> -->
                       <div class="image-content">
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="message-chatbox d-flex flex-row">
-                  <div class="message-user-picture-section">
-                    <div class="message-user-picture rounded-circle m-1 border  border-dark">
-                    </div>
-                  </div>
-                  <div class="message-content-section d-flex flex-column">
-                    <div class="mb-2 d-flex flex-row">
-                      <h6 class="me-4">Ivan</h6>
-                      <p> Sent 5 pm</p>
-                    </div>
-                    <div class="message-content text-wrap flex-grow-1">
-                      <!-- <p class="fs-6"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam</p> -->
-                      <div class="image-content">
-                      </div>
-                    </div>
+                  <div class="message-footer w-100 text-wrap border-top border-dark-subtle pt-2 pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle">
+                      <div class="d-flex gap-1 flex-row">
+                        <button class="btn btn-light border border-dark emoji-button p-1">&#128515 0</button>
+                        <button class="btn btn-primary border border-dark emoji-button p-1">&#128516 0</button>
+                        <button class="btn btn-light border border-dark emoji-button p-1">&#128517 0</button>
+                      </div>          
                   </div>
                 </div>
-                <div class="spinner-border d-flex invisible" role="status" id="chatbox-spinner">
+                <div class="d-none" role="status" id="chatbox-spinner">
+                  <div class="spinner-border">
+                  </div>
                 </div>
               </div>
               <div id="channel-input-div" class="w-100">
