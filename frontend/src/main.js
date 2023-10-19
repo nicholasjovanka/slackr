@@ -13,7 +13,8 @@ import {
     getDateHHMM,
     getListOfUserDetails,
     channelDetailsSectionGenerator,
-    getListOfPinnedMessages
+    getAllChannelMessages,
+    getMessageIndexInArray
 } from './helpers.js';
 
 /*
@@ -41,7 +42,7 @@ loginPageLoginButton.addEventListener('click',(e) => {
         localStorage.setItem('token',`Bearer ${response.token}`);
         localStorage.setItem('userId',response.userId)
         movePage('login-page','main-page');
-    })
+    }).catch((e) => {})
     .finally( () => {
         loginPageLoginButton.disabled = false;
     });
@@ -168,12 +169,6 @@ openButton.addEventListener('click',(e) => {
 })
 
 
-let mainPageStateObject = {
-    startIndex: 0,
-    userInChannel: false,
-    channelId: "",
-    userList: []
-}
 
 let messageWindow = document.getElementById('channel-messages');
 
@@ -181,8 +176,125 @@ let messageWindow = document.getElementById('channel-messages');
 localStorage.setItem('token', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5OTQ0NiIsImlhdCI6MTY5NzM1NDg3NX0.ujbOdP_Zdc3AF-u3mQo0CH7hKIx_-cYXcADdSeF0C5A')
 localStorage.setItem('userId', '99446');
 
+let mainPageStateObject = {
+    currentPage: 0,
+    pageCount: 0,
+    userInChannel: false,
+    endOfPage: false
+}
+
+var throttleTimer = false;
+
+const handleInfiniteScroll = () => { //Infinite Scroll , Inspired from: https://webdesign.tutsplus.com/how-to-implement-infinite-scrolling-with-javascript--cms-37055t
+    let spinner = document.getElementById('chatbox-spinner');
+    let startOfPage = messageWindow.scrollTop === 0;
+    if (!throttleTimer && startOfPage) {
+        let previousScrollHeight = messageWindow.scrollHeight;
+        throttleTimer = true;
+        spinner.classList.remove('d-none');
+        spinner.classList.add('d-flex');
+
+        setTimeout( () => {
+            if (startOfPage) {
+                getChannelMessages(localStorage.getItem('channelId'),mainPageStateObject.currentPage + 1)
+            }
+            if (mainPageStateObject.currentPage === mainPageStateObject.pageCount) {
+                console.log('removed infinity scroll')
+                removeInfiniteScroll();
+            }
+            spinner.classList.remove('d-flex');
+            spinner.classList.add('d-none');
+            messageWindow.scrollTop = messageWindow.scrollHeight - previousScrollHeight - 100;
+            throttleTimer = false;
+        },1000)
+    }
+
+    // let endOfPage = messageWindow.offsetHeight + messageWindow.scrollTop >= (messageWindow.scrollHeight);
+    // if (endOfPage && !throttleTimer) {
+    //     throttleTimer = true;
+    //     spinner.classList.remove('d-none');
+    //     spinner.classList.add('d-flex');
+    //     messageWindow.scrollTop = messageWindow.scrollTop + (messageWindow.scrollHeight - messageWindow.scrollTop);
+    //     setTimeout( () => {
+    //         getChannelMessages(mainPageStateObject.channelId,mainPageStateObject.userList,mainPageStateObject.currentPage + 1).then( (e) => {
+    //         }).catch((e) => {
+    //             removeInfiniteScroll();
+    //         }).finally(() => {
+    //             spinner.classList.remove('d-flex');
+    //             spinner.classList.add('d-none');
+    //             throttleTimer = false;
+    //         })
+    //     },1000)
+    // }
+  };
+  
+const removeInfiniteScroll = () => {
+    messageWindow.removeEventListener("scroll", handleInfiniteScroll);
+};
+  
+
+export const getChannelMessages = (channelId, pageNumber, beforeScroll = true) => {
+    let memberDetails = JSON.parse(localStorage.getItem('userList'));
+    let messageList = JSON.parse(localStorage.getItem('messageList'))
+    mainPageStateObject.currentPage = pageNumber;
+    let startRange = (mainPageStateObject.currentPage - 1) * 10 ;
+    let endRange = mainPageStateObject.currentPage === mainPageStateObject.pageCount? messageList.length: mainPageStateObject.currentPage * 10;
+    let slicedArray = messageList.slice(startRange,endRange);
+    let messagesArray = beforeScroll?slicedArray:slicedArray.reverse();
+
+    let index = 0;
+    messagesArray.forEach( (message) => {
+        let messageObject = {
+            id: message.id,
+            senderId: message.sender,
+            sender: memberDetails[message.sender].name,
+            userimage: memberDetails[message.sender].image,
+            messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
+            message: message.message,
+            image: message.image?message.image:null,
+            edited: message.edited,
+            editedAt: message.edited?`${convertDateToDDMMYY(message.editedAt)} ${getDateHHMM(message.editedAt)}`:null,
+            pinned: message.pinned,
+            reacts: message.reacts,
+            index
+        }
+        index+=1;
+        let chatBoxDiv = createMessage(messageObject);
+        if(beforeScroll){
+            messageWindow.insertBefore(chatBoxDiv,messageWindow.children[1]);
+        } else {
+            messageWindow.appendChild(chatBoxDiv);
+        }
+        
+    })
+    // messageResponse.messages.forEach( (message) => {
+    //     let messageObject = {
+    //         id: message.id,
+    //         senderId: message.sender,
+    //         sender: memberDetails[message.sender].name,
+    //         userimage: memberDetails[message.sender].image,
+    //         messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
+    //         message: message.message,
+    //         image: message.image?message.image:null,
+    //         edited: message.edited,
+    //         editedAt: message.edited?`${convertDateToDDMMYY(message.editedAt)} ${getDateHHMM(message.editedAt)}`:null,
+    //         pinned: message.pinned,
+    //         reacts: message.reacts,
+    //         index
+    //     }
+    //     index+=1;
+    //     let chatBoxDiv = createMessage(messageObject,channelId);
+    //     messageWindow.insertBefore(chatBoxDiv,spinner);
+    //     })
+}
+
+
+
 const getChannelData = (channelListObject) => {
     removeInfiniteScroll();
+    localStorage.removeItem('userList');
+    localStorage.removeItem('messageList');
+    localStorage.removeItem('channelId');
     let channelId = channelListObject.id;
     let channelName = channelListObject.textContent.slice(1);
     let channelInputDiv = document.getElementById('channel-input-div');
@@ -190,24 +302,32 @@ const getChannelData = (channelListObject) => {
     let userInChannel = channelListObject.getAttribute('data-user-in-channel') === 'false'?false:true;
     getChannelDetails(channelId,channelName,userInChannel).then((userList) => {
         mainPageStateObject = {
-            startIndex: 0,
-            channelId,
+            currentPage:0,
+            pageCount: 0,
             userInChannel,
-            userList
+            endOfPage: false
         }
+        localStorage.setItem('channelId', channelId);
         if(userInChannel){
-            let loadingSpinnerDiv = document.createElement('div');
-            loadingSpinnerDiv.setAttribute('class','d-none d-flex justify-content-center');
-            loadingSpinnerDiv.setAttribute('id','chatbox-spinner');
-            loadingSpinnerDiv.setAttribute('role','status');
-            messageWindow.appendChild(loadingSpinnerDiv);
-
-            let loadingSpinner = document.createElement('div');
-            loadingSpinner.setAttribute('class','spinner-border');
-            loadingSpinnerDiv.appendChild(loadingSpinner);
-
-            messageWindow.addEventListener("scroll", handleInfiniteScroll);
-            getChannelMessages(channelId,userList);
+            getAllChannelMessages(channelId).then( (messageList) => {
+                localStorage.setItem('userList', JSON.stringify(userList));
+                localStorage.setItem('messageList', JSON.stringify(messageList));
+                let pageCount = Math.ceil(messageList.length/10);
+                mainPageStateObject.pageCount = pageCount
+                if(pageCount > 0){
+                    let loadingSpinnerDiv = document.createElement('div');
+                    loadingSpinnerDiv.setAttribute('class','d-none d-flex justify-content-center');
+                    loadingSpinnerDiv.setAttribute('id','chatbox-spinner');
+                    loadingSpinnerDiv.setAttribute('role','status');
+                    let loadingSpinner = document.createElement('div');
+                    loadingSpinner.setAttribute('class','spinner-border');
+                    loadingSpinnerDiv.appendChild(loadingSpinner);
+                    messageWindow.appendChild(loadingSpinnerDiv);
+                    getChannelMessages(channelId,1,false);
+                    messageWindow.addEventListener("scroll", handleInfiniteScroll);
+                    messageWindow.scrollTop = messageWindow.scrollHeight;
+                }
+            })
         }
     })
 }
@@ -254,7 +374,7 @@ const getAllChannels = () => {
             publicChannelDiv.appendChild(publicChannelUl);
             privateChannelDiv.appendChild(privateChannelUl);
             resolve('');
-        })
+        }).catch((e) => {})
     })
 }
 
@@ -276,7 +396,6 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
         channelNameHeading.textContent = channelName;
         channelNameHeading.setAttribute('class','text-wrap')
         channelPageDiv.appendChild(channelNameHeading);
-        // getChannelMessages(channelListObject);
         if (!userInChannel){
             let joinButton = document.createElement('button');
             joinButton.setAttribute('class', 'btn btn-primary my-3');
@@ -289,7 +408,7 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
                     if (!response.error) {
                         refreshChannelList(channelId)
                     }
-                })
+                }).catch((e) => {})
             })  
             resolve(null);
         } else {
@@ -297,7 +416,7 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
             channelInformation.then( (response) => {
                 getListOfUserDetails(response.members).then((members) => {
                     let editChannelButton = document.createElement('button');
-                    editChannelButton.setAttribute('class', 'btn btn-primary mb-2 me-md-2');
+                    editChannelButton.setAttribute('class', 'btn btn-light border-dark-subtle  mb-2 me-md-2');
                     editChannelButton.textContent = 'Edit Channel';
                     editChannelButton.setAttribute('aria-label','Edit Channel Button');
                     editChannelButton.addEventListener('click', (e) => {
@@ -351,7 +470,7 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
                                 refreshChannelList(channelId,editChannelModal);
                             }
                             
-                        })
+                        }).catch((e) => {})
                     })
 
                     editChannelModalFooter.prepend(editChannelModalEditButton);
@@ -385,13 +504,13 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
                             if (!leaveResponse.error){
                                 refreshChannelList(channelId,leaveChannelModal);
                             }
-                        })
+                        }).catch((e) => {})
                     })
 
                     leaveChannelModalFooter.prepend(leaveChannelModalConfirmButton);
 
                     let pinnedMessageButton = document.createElement('button');
-                    pinnedMessageButton.setAttribute('class', 'btn btn-light border border-dark mb-2');
+                    pinnedMessageButton.setAttribute('class', 'btn btn-light border border-dark me-md-2 mb-2');
                     pinnedMessageButton.textContent = 'View Pinned Messages';
                     pinnedMessageButton.setAttribute('aria-label','View Pinned Message Button');
 
@@ -404,29 +523,44 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
                     let pinnedMessagesDiv = document.createElement('div');
                     pinnedMessagesDiv.setAttribute('class','w-100 pt-1 d-flex flex-column gap-2');
                     pinnedMessagesDiv.setAttribute('id','pinned-messages');
-            
+                    pinnedMessageModalBase.addEventListener('shown.bs.modal', (e) => {
+                        pinnedMessageModalBody.scrollTop = pinnedMessageModalBody.scrollHeight;
+                    })
+
                     pinnedMessageButton.addEventListener('click', (e) => {
                         pinnedMessagesDiv.replaceChildren();
-                        getListOfPinnedMessages(channelId).then( (messages) => {
-                            messages.forEach((message) => {
-                                let messageObject = {
-                                    sender: members[message.sender].name,
-                                    userimage: members[message.sender].image,
-                                    messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
-                                    message: message.message,
-                                    image: message.image?message.image:null,
-                                    edited: message.edited,
-                                    editedAt: message.edited?`${convertDateToDDMMYY(message.editedAt)} ${getDateHHMM(message.editedAt)}`:null,
-                                    pinned: message.pinned,
-                                    reacts: message.reacts,
-                                }
-                                let chatBoxDiv = createMessage(messageObject);
-                                pinnedMessagesDiv.appendChild(chatBoxDiv);
-                            })
-                            pinnedMessageModalBody.appendChild(pinnedMessagesDiv);
-                            pinnedMessageModal.show();
-                        });
+                        let messageList = JSON.parse(localStorage.getItem('messageList'));
+                        let messages =  messageList.filter((message) => message.pinned === true).reverse();
+                        messages.forEach((message) => {
+                            let messageObject = {
+                                id: message.id,
+                                senderId: message.sender,
+                                sender: members[message.sender].name,
+                                userimage: members[message.sender].image,
+                                messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
+                                message: message.message,
+                                image: message.image?message.image:null,
+                                edited: message.edited,
+                                editedAt: message.edited?`${convertDateToDDMMYY(message.editedAt)} ${getDateHHMM(message.editedAt)}`:null,
+                                pinned: message.pinned,
+                                reacts: message.reacts,
+                            }
+                            let chatBoxDiv = createMessage(messageObject, true);
+                            pinnedMessagesDiv.appendChild(chatBoxDiv);
+                        })
+                        pinnedMessageModalBody.appendChild(pinnedMessagesDiv);
+         
+                        pinnedMessageModal.show();
+                       
+
                     })
+
+                    let inviteToChannelButton = document.createElement('button');
+                    inviteToChannelButton.setAttribute('class', 'btn btn-light border border-dark mb-2');
+                    inviteToChannelButton.textContent = 'Invite People';
+                    inviteToChannelButton.setAttribute('aria-label','Invite PeopleButton');
+
+
 
                     let channelType = channelDetailsSectionGenerator('Channel Type',`${response.private?'Private':'Public'}`);
                     let channelCreator = channelDetailsSectionGenerator('Channel Creator',`${members[response.creator].name}`);
@@ -451,6 +585,7 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
                     channelPageDiv.appendChild(editChannelButton);
                     channelPageDiv.appendChild(leaveChannelButton);
                     channelPageDiv.appendChild(pinnedMessageButton);
+                    channelPageDiv.appendChild(inviteToChannelButton);
                     channelPageDiv.appendChild(channelType);
                     channelPageDiv.appendChild(channelCreator);
                     channelPageDiv.appendChild(channelCreationDate);
@@ -458,8 +593,8 @@ const getChannelDetails = (channelId, channelName, userInChannel) => {
                     channelPageDiv.appendChild(channelMembersText);
                     channelPageDiv.appendChild(ulObject);
                     resolve(members);
-                })
-            })
+                }).catch((e) => {})
+            }).catch((e) => {})
         }
     })
 }
@@ -540,7 +675,7 @@ createChannelButton.addEventListener('click', (e) => {
         let createChannelRequest = apiCall('channel','POST',request);
         createChannelRequest.then( (response) => {
             refreshChannelList(`${response.channelId}`,myModal)
-        });
+        }).catch((e) => {});
     })
     modalFooter.prepend(createButton);
     myModal.show();
@@ -548,69 +683,12 @@ createChannelButton.addEventListener('click', (e) => {
 })
 
 
-var throttleTimer = false;
- 
-const handleInfiniteScroll = () => { //Infinite Scroll , Inspired from: https://webdesign.tutsplus.com/how-to-implement-infinite-scrolling-with-javascript--cms-37055t
-    let spinner = document.getElementById('chatbox-spinner');
-    let endOfPage = messageWindow.offsetHeight + messageWindow.scrollTop >= (messageWindow.scrollHeight);
-    if (endOfPage && !throttleTimer) {
-        throttleTimer = true;
-        spinner.classList.remove('d-none');
-        spinner.classList.add('d-flex');
-        messageWindow.scrollTop = messageWindow.scrollTop + (messageWindow.scrollHeight - messageWindow.scrollTop);
-        setTimeout( () => {
-            getChannelMessages(mainPageStateObject.channelId,mainPageStateObject.userList,mainPageStateObject.startIndex).then( (e) => {
-                spinner.classList.remove('d-flex');
-                spinner.classList.add('d-none');
-                throttleTimer = false;
-            })
-        },1000)
-    }
-  };
-  
-const removeInfiniteScroll = () => {
-    messageWindow.removeEventListener("scroll", handleInfiniteScroll);
-};
-  
-
-export const getChannelMessages = (channelId, memberDetails, messageStartIndex = 0) => {
-    return new Promise( (resolve, reject) => {
-        let spinner = document.getElementById('chatbox-spinner');
-        let getChannelMessagesApi = apiCall(`message/${channelId}`,'GET',null,`start=${messageStartIndex}`);
-        getChannelMessagesApi.then( (messageResponse) =>{
-            if(messageResponse.messages.length > 0){
-                mainPageStateObject.startIndex = messageStartIndex + messageResponse.messages.length;
-                let index = messageStartIndex
-                messageResponse.messages.forEach( (message) => {
-                    let messageObject = {
-                        sender: memberDetails[message.sender].name,
-                        userimage: memberDetails[message.sender].image,
-                        messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
-                        message: message.message,
-                        image: message.image?message.image:null,
-                        edited: message.edited,
-                        editedAt: message.edited?`${convertDateToDDMMYY(message.editedAt)} ${getDateHHMM(message.editedAt)}`:null,
-                        pinned: message.pinned,
-                        reacts: message.reacts,
-                        index
-                    }
-                    index+=1;
-                    let chatBoxDiv = createMessage(messageObject);
-                    messageWindow.insertBefore(chatBoxDiv,spinner);
-                })
-            } else {
-                removeInfiniteScroll();
-            } 
-            resolve('')
-        });
-    })
-}
-
 
 
 document.getElementById('notification-button').addEventListener('click', (e) => {
-    createMessage();
-    console.log(messageWindow.scrollTop);
+    // createMessage();
     console.log(`Element Scroll height is ${messageWindow.scrollHeight}`);
+    console.log(`Element Offset height is ${messageWindow.offsetHeight}`);
+    console.log(`Element Scroll Top is ${messageWindow.scrollTop}`);
     console.log(`Element height + scroll is ${messageWindow.offsetHeight + messageWindow.scrollTop}`);
 })

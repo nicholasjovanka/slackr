@@ -113,7 +113,7 @@
             <h1 class="display-4">Slackr</h1>
           </div>
           <div class="col-4 h-100 d-flex align-items-center">
-            <button id="create-channel-button" class="btn btn-secondary btn-sm flex-grow-1">Create Channel</button>
+            <button id="create-channel-button" class="btn btn-light border border-dark-subtle  btn-sm flex-grow-1">Create Channel</button>
           </div>
           <div class="col-4 h-100 d-flex align-items-center justify-content-end">
             <button id="notification-button" class="btn border border-radius border-dark rounded-circle p-0 mx-2 focus-ring navbar-icon-button fs-3" aria-label="Notification Button"></button>
@@ -121,9 +121,9 @@
           </div>
         </div>
         <div class="row h-90">
-          <div class="col-1 col-md-2 ps-0 h-100">
+          <div class="col-1 col-md-2 ps-0 h-100 pe-md-0">
             <div id="channel-list-sidebar" class="slider slide-out">
-              <button id="open-button" class="btn btn-primary position-absolute top-50 start-100 translate-middle text-break p-0 d-md-none" title="View your Joined Channels"> > </button>
+              <button id="open-button" class="btn btn-light border-dark-subtle position-absolute top-50 start-100 translate-middle text-break p-0 d-md-none" title="View your Joined Channels"> > </button>
               <div id="channel-list-section" class="p-1 my-2 my-md-0 d-flex flex-column">
                 <h6 class="text-light">Public Channels</h6>
                 <div id="channel-list-public" class="flex-grow-1 scrollable-on-hover p-1">
@@ -138,7 +138,7 @@
               </div>
             </div>
           </div>
-          <div class="col-8 col-md-7 h-100 pe-0">
+          <div class="col-8 col-md-7 h-100 pe-0 ps-md-0">
             <div id="channel-content-div" class="border border-dark border-top-0 border-end-0 h-100 w-100">
               <div id="channel-messages" class="w-100 pt-1 d-flex flex-column overflow-y-scroll gap-4">
                 <div class="message-chatbox d-flex flex-row flex-wrap border-top border-bottom border-dark px-2">
@@ -157,12 +157,19 @@
                       </div>
                     </div>
                   </div>
-                  <div class="message-footer w-100 text-wrap border-top border-dark-subtle pt-2 pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle">
-                      <div class="d-flex gap-1 flex-row">
+                  <div class="w-100 text-wrap border-top border-dark-subtle d-flex flex-row d-flex">
+                    <p class="mb-0">Editted Bla bla</p>
+                  </div>
+                  <div class="w-100 text-wrap py-0 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle">
+                    <div>
+                      <button class="btn btn-light border border-dark emoji-button p-1" aria-label="Delete Message Button"><i class="bi bi-trash"></i></button>
+                      <button class="btn btn-light border border-dark emoji-button p-1" aria-label="Pin Message Button"><i class="bi bi-pin-angle"></i></button>
+                    </div>  
+                    <div class="d-flex gap-1 flex-row">
                         <button class="btn btn-light border border-dark emoji-button p-1">&#128515 0</button>
-                        <button class="btn btn-primary border border-dark emoji-button p-1">&#128516 0</button>
+                        <button class="btn btn-primary border border-dark emoji-button p-1">&#128514 0</button>
                         <button class="btn btn-light border border-dark emoji-button p-1">&#128517 0</button>
-                      </div>          
+                    </div>          
                   </div>
                 </div>
                 <div class="d-none" role="status" id="chatbox-spinner">

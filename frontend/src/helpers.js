@@ -52,7 +52,7 @@ export const checkEmail = (email) => {
 }
 
 
-export const apiCall = (path, method, body = null ,queryString = null) => {
+export const apiCall = (path, method, body = null ,queryString = null, showServerError = true) => {
     return new Promise( (resolve, reject) => {
         let urlString = `http://localhost:${BACKEND_PORT}/${path}${queryString!==null?`?${queryString}`:""}`;
         let token = localStorage.getItem('token');
@@ -75,7 +75,10 @@ export const apiCall = (path, method, body = null ,queryString = null) => {
             }
         })
         .catch((e) => {
-            showWarningModal('Server Error', e)
+            if(showServerError){
+                showWarningModal('Server Error', e);
+            }
+            reject(e);
         })
     })
 }
@@ -114,6 +117,11 @@ export const emptyInputValidator = (inputElement,warningElement,fieldName ,trim 
     }
 }
 
+export const getMessageIndexInArray = (id) => {
+    let messageListArray = JSON.parse(localStorage.getItem('messageList'));
+    return messageListArray.findIndex((message) => message.id === id);
+}
+
 export const getListOfUserDetails = (userIdList, currentIndex = 0, userObject = {}) => {
     return apiCall(`user/${userIdList[currentIndex]}`,'GET').then((response) => {
         let userId = `${userIdList[currentIndex]}`;
@@ -127,20 +135,19 @@ export const getListOfUserDetails = (userIdList, currentIndex = 0, userObject = 
     })
 }
 
-export const getListOfPinnedMessages = (channelId, pinnedMessages = [], startIndex = 0) => {
+export const getAllChannelMessages = (channelId, messages = [], startIndex = 0) => {
     return apiCall(`message/${channelId}`,'GET',null,`start=${startIndex}`).then
     ( (response) => {
         if(response.messages.length == 0){
             startIndex = -1;
         } else {
             startIndex = startIndex + response.messages.length;
-            let tempPinnedMessages = response.messages.filter((message) => message.pinned === true);
-            pinnedMessages = [...pinnedMessages,...tempPinnedMessages];
+            messages = [...messages,...response.messages];
         }
         if(startIndex !== -1){
-            return getListOfPinnedMessages(channelId,pinnedMessages,startIndex);
+            return getAllChannelMessages(channelId,messages,startIndex);
         } else {
-            return pinnedMessages;
+            return messages;
         }
     })
 }
@@ -207,7 +214,7 @@ export const showWarningModal = (title,message) => {
     let modalHeader = modalBasic.children[0].children[0].children[0];
     let modalBody = modalBasic.children[0].children[0].children[1];
     modalHeader.classList.add('text-warning');
-    modalHeader.children[0].textContent = "Error";
+    modalHeader.children[0].textContent = title;
     modalBody.textContent = message;
     let modal = modalBasic;
     const myModal = new bootstrap.Modal(modal)
@@ -280,10 +287,49 @@ export const offsetMessagesScroll = (offset) => {
     channelMessagesDiv.scrollTop = offset;
 }
 
+const emojiHandler = (emojiButton, emojiString, channelId, messageId) => {
+    let reactApiBody = {
+        react:emojiString
+    }
+    let userId = Number(localStorage.getItem('userId'));
+    let messageIndex = getMessageIndexInArray(messageId);
+    let messageList = JSON.parse(localStorage.getItem('messageList'));
+    let currentLength = Number(emojiButton.textContent.split(' ')[1]);
+    let newReactObject = {
+        react: emojiString,
+        user: userId
+    }
+    if(emojiButton.classList.contains('btn-light')){
+        let reactApiCall = apiCall(`message/react/${channelId}/${messageId}`,'POST',reactApiBody);
+        reactApiCall.then((response) => {
+            emojiButton.classList.remove('btn-light');
+            emojiButton.classList.add('btn-primary');
+            emojiButton.textContent = `${String.fromCodePoint(Number(emojiString))} ${currentLength+1}`;
+            messageList[messageIndex].reacts.push(newReactObject);
+            localStorage.setItem('messageList',JSON.stringify(messageList));
+            
+        }).catch((e) => {})
+    } else {
+        let unReactApiCall = apiCall(`message/unreact/${channelId}/${messageId}`,'POST',reactApiBody);
+        unReactApiCall.then((response) => {
+            emojiButton.classList.remove('btn-primary');
+            emojiButton.classList.add('btn-light');
+            emojiButton.textContent = `${String.fromCodePoint(Number(emojiString))} ${currentLength-1}`;
+            messageList[messageIndex].reacts = messageList[messageIndex].reacts.filter((reactObj) => JSON.stringify(reactObj)!== JSON.stringify(newReactObject));
+            localStorage.setItem('messageList',JSON.stringify(messageList));
+        }).catch((e) => {})
+    }
+}
 
-export const createMessage = (messageObj) => {
+
+
+
+export const createMessage = (messageObj, disableButtons = false) => {
+    let channelId = localStorage.getItem('channelId');
+    let userId = Number(localStorage.getItem('userId'));
     let chatBoxDiv = document.createElement('div');
     chatBoxDiv.setAttribute('class','message-chatbox d-flex flex-row flex-wrap border-top border-bottom border-dark px-2');
+    chatBoxDiv.setAttribute('data-id', messageObj.id);
     if (messageObj.index){
         chatBoxDiv.setAttribute('data-index', messageObj.index);
     }
@@ -292,13 +338,16 @@ export const createMessage = (messageObj) => {
 
     let userProfilePictureDiv = document.createElement('div');
     userProfilePictureDiv.setAttribute('class','message-user-picture rounded-circle m-1 border border-dark');
-    
+    messagePictureSection.appendChild(userProfilePictureDiv);
+
     let messageContentSectionDiv = document.createElement('div');
     messageContentSectionDiv.setAttribute('class','message-content-section d-flex flex-column');
     
     let messageHeaderSection = document.createElement('div');
     messageHeaderSection.setAttribute('class','pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle text-wrap');
-    
+    messageContentSectionDiv.appendChild(messageHeaderSection);
+
+
     let messageSenderName = document.createElement('p');
     messageSenderName.setAttribute('class','me-4 mb-0 fs-6');
     messageSenderName.textContent = messageObj.sender;
@@ -321,26 +370,122 @@ export const createMessage = (messageObj) => {
         messageContentSection.appendChild(bodyText);
     }
 
-    let messageFooterDiv = document.createElement('div');
-    messageFooterDiv.setAttribute('class','message-footer w-100 text-wrap border-top border-dark-subtle pt-2 pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle');
+    messageContentSectionDiv.appendChild(messageContentSection);
 
-    let messageFooterEdittedText = document.createElement('p');
-    messageFooterEdittedText.setAttribute('class','fs-6');
+    let messageEditedDiv= document.createElement('div');
+    messageEditedDiv.setAttribute('class','w-100 text-wrap border-top border-dark-subtle d-flex flex-row d-flex');
+
+    if(messageObj.edited){
+        let editedText = document.createElement('p');
+        editedText.setAttribute('class','mb-0');
+        editedText.textContent = `Edited at ${messageObj.editedAt}`
+        messageEditedDiv.appendChild(editedText);
+    }
+
+    let buttonsDiv = document.createElement('div');
+    buttonsDiv.setAttribute('class','w-100 text-wrap py-0 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle');
+
+    let leftSideButtonDiv = document.createElement('div');
+    let pinButton = document.createElement('button');
+    pinButton.setAttribute('class',`btn ${messageObj.pinned?'btn-primary':'btn-light'} border border-dark emoji-button p-1`);
+    let pinButtonIcon = document.createElement('i');
+    pinButtonIcon.setAttribute('class','bi bi-pin-angle');
+    pinButton.appendChild(pinButtonIcon);
+    pinButton.addEventListener('click',(e) => {
+        let userId = Number(localStorage.getItem('userId'));
+        let messageIndex = getMessageIndexInArray(messageObj.id);
+        let messageList = JSON.parse(localStorage.getItem('messageList'));
+        if(pinButton.classList.contains('btn-light')){
+            let pinApiCall = apiCall(`message/pin/${channelId}/${messageObj.id}`,'POST');
+            pinApiCall.then((response) => {
+                pinButton.classList.remove('btn-light');
+                pinButton.classList.add('btn-primary');
+                messageList[messageIndex].pinned = true;
+                localStorage.setItem('messageList',JSON.stringify(messageList));
+            }).catch((e) => {});
+        } else {
+            let unPinApiCall = apiCall(`message/unpin/${channelId}/${messageObj.id}`,'POST');
+            unPinApiCall.then((response) => {
+                pinButton.classList.remove('btn-primary');
+                pinButton.classList.add('btn-light');
+                messageList[messageIndex].pinned = false;
+                localStorage.setItem('messageList',JSON.stringify(messageList));
+            }).catch((e) => {});
+        }
+    })
+
+    leftSideButtonDiv.appendChild(pinButton);
+
+    if(userId === messageObj.senderId) {
+        let editButton = document.createElement('button');
+        editButton.setAttribute('class','btn btn-link mb-0 p-0');
+        editButton.textContent = "Edit";
+        
+        let deleteButton = document.createElement('button')
+        deleteButton.setAttribute('class','btn btn-danger border border-dark emoji-button p-1 me-1');
+        let deleteButtonIcon = document.createElement('i');
+        deleteButtonIcon.setAttribute('class','bi bi-trash');
+
+        if(disableButtons) {
+            editButton.setAttribute('disabled','');
+            deleteButton.setAttribute('disabled','');
+        }
+
+        deleteButton.appendChild(deleteButtonIcon);
+        leftSideButtonDiv.appendChild(deleteButton);
+        if(!messageObj.edited){
+            messageEditedDiv.appendChild(editButton);
+        }
+    }
+
+
+
+
+    let emoji1 = messageObj.reacts.filter((reactObj) => reactObj.react === '128515');
+    let emoji2 = messageObj.reacts.filter((reactObj) => reactObj.react === '128514');
+    let emoji3 = messageObj.reacts.filter((reactObj) => reactObj.react === '128517');
+
+    let emoji1UserHasReact = emoji1.filter((reactObj) => reactObj.user === userId).length > 0 ? true : false;
+    let emoji2UserHasReact = emoji2.filter((reactObj) => reactObj.user === userId).length > 0 ? true : false;
+    let emoji3UserHasReact = emoji3.filter((reactObj) => reactObj.user === userId).length > 0 ? true : false;
 
     let reactionsDiv = document.createElement('div');
     reactionsDiv.setAttribute('class','d-flex gap-1 flex-row');
 
     let emojiButton1 = document.createElement('button')
-    emojiButton1.setAttribute('class','btn btn-light border border-dark emoji-button p-1');
-    emojiButton1.textContent = `${String.fromCodePoint(128515)} 0`;
+    emojiButton1.setAttribute('class',`btn ${emoji1UserHasReact?'btn-primary':'btn-light'} border border-dark emoji-button p-1`);
+    emojiButton1.textContent = `${String.fromCodePoint(128515)} ${emoji1.length}`;
 
     let emojiButton2 = document.createElement('button')
-    emojiButton2.setAttribute('class','btn btn-light border border-dark emoji-button p-1');
-    emojiButton2.textContent = `${String.fromCodePoint(128516)} 0`;
+    emojiButton2.setAttribute('class',`btn ${emoji2UserHasReact?'btn-primary':'btn-light'} border border-dark emoji-button p-1`);
+    emojiButton2.textContent = `${String.fromCodePoint(128514)} ${emoji2.length}`;
 
     let emojiButton3 = document.createElement('button')
-    emojiButton3.setAttribute('class','btn btn-light border border-dark emoji-button p-1');
-    emojiButton3.textContent = `${String.fromCodePoint(128517)} 0`; 
+    emojiButton3.setAttribute('class',`btn ${emoji3UserHasReact?'btn-primary':'btn-light'} border border-dark emoji-button p-1`);
+    emojiButton3.textContent = `${String.fromCodePoint(128517)} ${emoji3.length}`; 
+
+    emojiButton1.addEventListener('click', (e) => {
+        emojiHandler(emojiButton1,'128515',channelId, messageObj.id);
+    });
+
+    emojiButton2.addEventListener('click', (e) => {
+        emojiHandler(emojiButton2,'128514',channelId, messageObj.id);
+    });
+
+    emojiButton3.addEventListener('click', (e) => {
+        emojiHandler(emojiButton3,'128517',channelId, messageObj.id);
+    });
+
+    
+    if(disableButtons){
+        pinButton.setAttribute('disabled','');
+        emojiButton1.setAttribute('disabled','');
+        emojiButton2.setAttribute('disabled','');
+        emojiButton3.setAttribute('disabled','');
+    }
+    
+    buttonsDiv.appendChild(leftSideButtonDiv);
+    buttonsDiv.appendChild(reactionsDiv);
 
     messageHeaderSection.appendChild(messageSenderName);
     messageHeaderSection.appendChild(messageSendTime);  
@@ -348,21 +493,12 @@ export const createMessage = (messageObj) => {
     reactionsDiv.appendChild(emojiButton1);
     reactionsDiv.appendChild(emojiButton2);
     reactionsDiv.appendChild(emojiButton3);
-
-    messageFooterDiv.appendChild(messageFooterEdittedText);
-    messageFooterDiv.appendChild(reactionsDiv);
-
-    messageContentSectionDiv.appendChild(messageHeaderSection);
-    messageContentSectionDiv.appendChild(messageContentSection);
     
-    messagePictureSection.appendChild(userProfilePictureDiv);
+
     chatBoxDiv.appendChild(messagePictureSection);
     chatBoxDiv.appendChild(messageContentSectionDiv);
-    chatBoxDiv.appendChild(messageFooterDiv)
+    chatBoxDiv.appendChild(messageEditedDiv);
+    chatBoxDiv.appendChild(buttonsDiv);
+
     return chatBoxDiv;
-    // if(chatBoxDivParent === "channel-messages"){
-    //     messagesDiv.insertBefore(chatBoxDiv,spinner);
-    // } else {
-    //     messagesDiv.appendChild(chatBoxDiv);
-    // }
 }

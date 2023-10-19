@@ -85,7 +85,16 @@
           "edited": false,
           "editedAt": null,
           "pinned": false,
-          "reacts": []
+          "reacts": [
+            {
+              "user": 99446,
+              "react": "128517"
+            },
+            {
+              "user": 99446,
+              "react": "128515"
+            }
+          ]
         },
         {
           "id": 41,
@@ -184,7 +193,7 @@
           "sentAt": "2021-09-13T08:00:03.942Z",
           "edited": false,
           "editedAt": null,
-          "pinned": false,
+          "pinned": true,
           "reacts": []
         },
         {
@@ -194,7 +203,7 @@
           "sentAt": "2021-09-13T08:00:03.934Z",
           "edited": false,
           "editedAt": null,
-          "pinned": false,
+          "pinned": true,
           "reacts": []
         },
         {
@@ -204,7 +213,7 @@
           "sentAt": "2021-09-13T08:00:03.908Z",
           "edited": false,
           "editedAt": null,
-          "pinned": false,
+          "pinned": true,
           "reacts": []
         },
         {
