@@ -67,6 +67,6 @@
     .image-content{
         width: 15%;
         aspect-ratio: 1/1;
-        background-image: url('../assets/user.svg');
+        background-image: url('../assets/test.png');
     }
 }

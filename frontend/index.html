@@ -47,7 +47,7 @@
               </form>
             </div>
             <div class="position-absolute bottom-0 end-0 pe-3">
-              <p class="fs-6">Slackr Incorporated &copy</p>
+              <p class="fs-6 w-80">Slackr Incorporated &copy</p>
             </div>
           </div>
           <div class="col-md-2 d-none d-md-block">
@@ -121,7 +121,7 @@
           </div>
         </div>
         <div class="row h-90">
-          <div class="col-1 col-md-2 ps-0 h-100 pe-md-0">
+          <div class="col-1 col-md-2 ps-0 h-100 pe-md-0 z-3">
             <div id="channel-list-sidebar" class="slider slide-out">
               <button id="open-button" class="btn btn-light border-dark-subtle position-absolute top-50 start-100 translate-middle text-break p-0 d-md-none" title="View your Joined Channels"> > </button>
               <div id="channel-list-section" class="p-1 my-2 my-md-0 d-flex flex-column">
@@ -154,6 +154,7 @@
                     <div class="message-content text-wrap py-1">
                       <!-- <p class="fs-6"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam</p> -->
                       <div class="image-content">
+                      
                       </div>
                     </div>
                   </div>
@@ -177,8 +178,25 @@
                   </div>
                 </div>
               </div>
-              <div id="channel-input-div" class="w-100">
-
+              <div id="channel-input-div" class="w-100 d-flex flex-row py-1 gap-1 position-relative z-1">
+                <div class="d-flex flex-column w-100">
+                  <div id="text-area-div" class="d-flex flex-column h-100 px-1">
+                    <label class="form-label" for="chat-input">Insert Your Message</label>
+                    <textarea id="chat-input" class="flex-grow-1 overflow-y-scroll" disabled> </textarea>
+                  </div>
+                  <div id="file-displayer-div" class="d-flex w-100 position-absolute start-50 translate-middle border border-dark text-center p-0 d-none">
+                    <button id="cancel-file-upload-button" class="btn position-absolute end-0 p-0 z-1"><i class="bi bi-x-circle fs-4"></i></button>
+                    <div class="w-100 h-100 overflow-scroll z-0">
+                    </div>
+                  </div>
+                </div>
+                <div id="message-input-buttons-div" class="d-flex flex-column gap-1">
+                  <div class="h-50 w-100">
+                    <label id="file-input-label" for="file-input" class="btn btn-light border border-dark w-100 focus-ring disabled" tabindex="0"><i class="bi bi-upload"></i></label>
+                    <input type="file" id="file-input" class="form-control d-none" aria-label="Upload File" disabled>
+                  </div>
+                  <button id="send-message-button" class="btn btn-light border border-dark p-0 h-50 mb-1 focus-ring flex-grow-1" aria-label="Send Message Button" disabled><i class="bi bi-send"></i></button>
+                </div>
               </div>
 
             </div>

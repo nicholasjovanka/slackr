@@ -84,12 +84,13 @@
     }
     
     .image-content{
-        width: 60%;
-        aspect-ratio: 1/1;
-        background-image: url('../assets/background.jpg');
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        background-image: url('../assets/test.png');
         background-size: contain;
         background-repeat: no-repeat;
     }
+
 
     .emoji-button{
         font-size: 1rem;

@@ -57,6 +57,22 @@ main {
     overflow: scroll;
 }
 
+#channel-input-div{
+    width: 85%;
+    height: 100%;
+}
+
+#message-input-buttons-div{
+    width: 15%;
+}
+
+#file-displayer-div{
+    background-color: bisque;
+    height: 150%;
+    top: -70%;
+}
+
+
 /* Height and Width Class that Bootstrap doesnt provide */
 
 .h-5{
