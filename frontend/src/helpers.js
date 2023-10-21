@@ -45,18 +45,7 @@ export const getDateHHMM = (dateStr) => {
     return date;
 }
 
-export const checkConnection = () => {
-    return new Promise ((resolve, reject) => {
-        let apiRequest = apiCall('','POST',null,null,false).catch((error) => {
-            if(error.message === 'Failed to fetch'){
-                console.log("server died");
-                resolve(true);
-            } else {
-                resolve(false);
-            }
-        })
-    })
-}
+
 
 
 export const checkEmail = (email) => {
@@ -65,8 +54,9 @@ export const checkEmail = (email) => {
 }
 
 
-export const apiCall = (path, method, body = null ,queryString = null, showServerError = true) => {
+export const apiCall = (path, method, body = null ,queryString = null, showRequestError = true, showConnectionError = true) => {
     return new Promise( (resolve, reject) => {
+        let isConnectionError = true;
         let urlString = `http://localhost:${BACKEND_PORT}/${path}${queryString!==null?`?${queryString}`:""}`;
         let token = localStorage.getItem('token');
         let options = {
@@ -82,16 +72,24 @@ export const apiCall = (path, method, body = null ,queryString = null, showServe
         .then((response) => response.json())
         .then((data) => {
             if(data.error){
-                showWarningModal('Error',data.error)
+                isConnectionError = false;
+                throw new Error(data.error)
             } else {
                 resolve(data);
             }
         })
         .catch((e) => {
-            if(showServerError){
-                showWarningModal('Server Error', e.message);
-            }
-            reject(e);
+            if(!isConnectionError){
+                reject(e.message);
+                if(showRequestError){
+                    showMessageModal('Error',e.message);
+                }
+            } else if(isConnectionError){
+                reject('Server Error');
+                if(showConnectionError){
+                    showMessageModal('Server Error', e.message);
+                }
+            } 
         })
     })
 }
@@ -135,13 +133,13 @@ export const emptyInputValidator = (inputElement,warningElement,fieldName ,trim 
 //     return messageListArray.findIndex((message) => message.id === id);
 // }
 
-export const getListOfUserDetails = (userIdList, currentIndex = 0, userObject = {}) => {
+export const getObjectOfUserDetails = (userIdList, currentIndex = 0, userObject = {}) => {
     return apiCall(`user/${userIdList[currentIndex]}`,'GET').then((response) => {
         let userId = `${userIdList[currentIndex]}`;
         userObject[userId] = response;
         currentIndex+=1
         if(currentIndex < userIdList.length){
-            return getListOfUserDetails(userIdList,currentIndex,userObject);
+            return getObjectOfUserDetails(userIdList,currentIndex,userObject);
         } else {
             return userObject;
         }
@@ -164,6 +162,27 @@ export const getAllChannelMessages = (channelId, messages = [], startIndex = 0) 
         }
     })
 }
+
+export const getSpecificMessage = (channelId,messageId,startIndex = 0) => {
+    return apiCall(`message/${channelId}`,'GET',null,`start=${startIndex}`).then
+    ( (response) => {
+        let specifiedMessageObj = response.messages.find((message) => message.id === messageId);
+        if (specifiedMessageObj !== undefined) {
+            return specifiedMessageObj;
+        }
+        if(response.messages.length == 0){
+            startIndex = -1;
+        } else {
+            startIndex = startIndex + response.messages.length;
+        }
+        if(startIndex !== -1){
+            return getAllChannelMessages(channelId,messages,startIndex);
+        } else {
+            return null;
+        }
+    })
+}
+
 
 export const createBasicModalStructure = () => {
     //Create the Modal Header
@@ -220,13 +239,12 @@ export const createBasicModalStructure = () => {
     return modalDiv;
 }
 
-export const showWarningModal = (title,message) => {
+export const showMessageModal = (title,message) => {
     let modalBasic = createBasicModalStructure();
     modalBasic.setAttribute('data-bs-backdrop','static');
     modalBasic.setAttribute('data-bs-keyboard','false');
     let modalHeader = modalBasic.children[0].children[0].children[0];
     let modalBody = modalBasic.children[0].children[0].children[1];
-    modalHeader.classList.add('text-warning');
     modalHeader.children[0].textContent = title;
     modalBody.textContent = message;
     let modal = modalBasic;
@@ -297,6 +315,7 @@ export const createForm = (formFormat) => {
     return form;
 
 }
+
 
 export const channelDetailsSectionGenerator = (title,content) => { 
     let div = document.createElement('div');

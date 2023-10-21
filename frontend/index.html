@@ -141,42 +141,6 @@
           <div class="col-8 col-md-7 h-100 pe-0 ps-md-0">
             <div id="channel-content-div" class="border border-dark border-top-0 border-end-0 h-100 w-100">
               <div id="channel-messages" class="w-100 pt-1 d-flex flex-column overflow-y-scroll gap-4">
-                <div class="message-chatbox d-flex flex-row flex-wrap border-top border-bottom border-dark px-2">
-                  <div class="message-user-picture-section">
-                    <div class="message-user-picture rounded-circle m-1 border border-dark">
-                    </div>
-                  </div>
-                  <div class="message-content-section d-flex flex-column">
-                    <div class="pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle text-wrap">
-                      <p class="me-4 mb-0 fs-6">Ivan</p>
-                      <p class="mb-0 fs-6 text-secondary"> Sent 5 pm aaaa aaaaa aaaa</p>
-                    </div>
-                    <div class="message-content text-wrap py-1">
-                      <!-- <p class="fs-6"> Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam</p> -->
-                      <div class="image-content">
-                      
-                      </div>
-                    </div>
-                  </div>
-                  <div class="w-100 text-wrap border-top border-dark-subtle d-flex flex-row d-flex">
-                    <p class="mb-0">Editted Bla bla</p>
-                  </div>
-                  <div class="w-100 text-wrap py-0 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle">
-                    <div>
-                      <button class="btn btn-light border border-dark emoji-button p-1" aria-label="Delete Message Button"><i class="bi bi-trash"></i></button>
-                      <button class="btn btn-light border border-dark emoji-button p-1" aria-label="Pin Message Button"><i class="bi bi-pin-angle"></i></button>
-                    </div>  
-                    <div class="d-flex gap-1 flex-row">
-                        <button class="btn btn-light border border-dark emoji-button p-1">&#128515 0</button>
-                        <button class="btn btn-primary border border-dark emoji-button p-1">&#128514 0</button>
-                        <button class="btn btn-light border border-dark emoji-button p-1">&#128517 0</button>
-                    </div>          
-                  </div>
-                </div>
-                <div class="d-none" role="status" id="chatbox-spinner">
-                  <div class="spinner-border">
-                  </div>
-                </div>
               </div>
               <div id="channel-input-div" class="w-100 d-flex flex-row py-1 gap-1 position-relative z-1">
                 <div class="d-flex flex-column w-100">
@@ -185,15 +149,15 @@
                     <textarea id="chat-input" class="flex-grow-1 overflow-y-scroll" disabled> </textarea>
                   </div>
                   <div id="file-displayer-div" class="d-flex w-100 position-absolute start-50 translate-middle border border-dark text-center p-0 d-none">
-                    <button id="cancel-file-upload-button" class="btn position-absolute end-0 p-0 z-1"><i class="bi bi-x-circle fs-4"></i></button>
+                    <button id="cancel-file-upload-button" class="btn position-absolute end-0 p-0 z-1 me-2 me-md-5"><i class="bg-light bi-x-circle fs-4 border border-dark "></i></button>
                     <div class="w-100 h-100 overflow-scroll z-0">
                     </div>
                   </div>
                 </div>
                 <div id="message-input-buttons-div" class="d-flex flex-column gap-1">
                   <div class="h-50 w-100">
-                    <label id="file-input-label" for="file-input" class="btn btn-light border border-dark w-100 focus-ring disabled" tabindex="0"><i class="bi bi-upload"></i></label>
-                    <input type="file" id="file-input" class="form-control d-none" aria-label="Upload File" disabled>
+                    <label id="file-input-label" for="file-input" class="btn btn-light border border-dark w-100 focus-ring disabled" tabindex="0" aria-label="Upload File Button"><i class="bi bi-upload"></i></label>
+                    <input type="file" id="file-input" class="form-control d-none"disabled>
                   </div>
                   <button id="send-message-button" class="btn btn-light border border-dark p-0 h-50 mb-1 focus-ring flex-grow-1" aria-label="Send Message Button" disabled><i class="bi bi-send"></i></button>
                 </div>

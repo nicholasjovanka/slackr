@@ -67,11 +67,34 @@ main {
 }
 
 #file-displayer-div{
-    background-color: bisque;
-    height: 150%;
-    top: -70%;
+    background-color: whitesmoke;
+    height: 250%;
+    top: -120%;
 }
 
+.background-image-contain{
+    aspect-ratio: 1 / 1;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.background-image-cover{
+    aspect-ratio: 1 / 1;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.background-image-center{
+    background-position: center top;
+}
+
+.message-user-picture{
+    background-image: url('../assets/user.svg');
+}
+
+.pointer{
+    cursor: pointer
+}
 
 /* Height and Width Class that Bootstrap doesnt provide */
 

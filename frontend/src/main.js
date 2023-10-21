@@ -1,7 +1,7 @@
 // A helper you may want to use when uploading new images to the server.
 import { 
     fileToDataUrl, 
-    showWarningModal,
+    showMessageModal,
     movePage,checkEmail, 
     formInputElementValidator, 
     emptyInputValidator,
@@ -10,11 +10,10 @@ import {
     createForm, 
     convertDateToDDMMYY,
     getDateHHMM,
-    getListOfUserDetails,
+    getObjectOfUserDetails,
     channelDetailsSectionGenerator,
     getAllChannelMessages,
     createConfirmationModal,
-    checkConnection
 } from './helpers.js';
 
 
@@ -59,7 +58,7 @@ let registerPageNameInput = document.getElementById('register-name-input');
 
 const validateRegisterPageNameInput = () => {
     let registerNameWarningDiv = document.getElementById('register-name-invalid-message');
-    emptyInputValidator(registerPageNameInput,registerNameWarningDiv,"Name");
+    return !emptyInputValidator(registerPageNameInput,registerNameWarningDiv,"Name");
 }
 
 registerPageNameInput.addEventListener('blur', (e) => {
@@ -70,15 +69,20 @@ registerPageNameInput.addEventListener('blur', (e) => {
 let registerPageEmailInput = document.getElementById('register-email-input');
 
 const validateRegisterPageEmailInput = () => {
+    let valid = true;
     let registerEmailWarningDiv = document.getElementById('register-email-invalid-message');
     let isEmpty = emptyInputValidator(registerPageEmailInput,registerEmailWarningDiv,"Email");
     if(!isEmpty) {
         let emailIsValid = checkEmail(registerPageEmailInput.value);
         if (!emailIsValid) {
             registerEmailWarningDiv.textContent = "Wrong Email Format";
+            valid = false;
         }
         formInputElementValidator(registerPageEmailInput, emailIsValid);
+    } else {
+        valid = false;
     }
+    return valid;
 }
 
 registerPageEmailInput.addEventListener('blur', (e) => {
@@ -90,21 +94,25 @@ let registerPageConfirmPasswordInput = document.getElementById('register-confirm
 
 const validateRegisterPagePasswordInput = () => {
     let registerPasswordWarningDiv = document.getElementById('register-password-invalid-message');
+    let errorMessage = '';
     let valid = true;
     if(registerPagePasswordInput.value.length === 0 || registerPageConfirmPasswordInput.value.length === 0){
-        registerPasswordWarningDiv.textContent = `${registerPagePasswordInput.value.length === 0?'Password':'Confirm Password'} field cannot be empty`
+        errorMessage = `${registerPagePasswordInput.value.length === 0?'Password':'Confirm Password'} field cannot be empty`
         valid = false;
     } else {
         if(registerPagePasswordInput.value === registerPageConfirmPasswordInput.value) {
             valid = true;
         } else {
             valid = false;
-            registerPasswordWarningDiv.textContent = "Password must be the same"
+            errorMessage = 'Password must be the same';
         }
+    }
+    if(!valid){
+        registerPasswordWarningDiv.textContent = errorMessage
     }
     formInputElementValidator(registerPagePasswordInput, valid);
     formInputElementValidator(registerPageConfirmPasswordInput, valid);
-
+    return [valid,errorMessage];
 }
 
 registerPagePasswordInput.addEventListener('blur', (e) => {
@@ -126,9 +134,19 @@ registerPageLoginHyperLink.addEventListener('click', (e) => {
 let registerPageButton = document.getElementById('register-page-submit-button');
 
 registerPageButton.addEventListener('click', (e) => {
-    e.preventDefault();
-    registerPageButton.disabled = true;
-    if(registerPagePasswordInput.value === registerPageConfirmPasswordInput.value){
+    try{
+        e.preventDefault();
+        registerPageButton.disabled = true;
+        if(!validateRegisterPageNameInput()){
+            throw new Error('Please fix the Name Field')
+        }
+        if(!validateRegisterPageEmailInput()){
+            throw new Error('Please fix the Email Field')
+        }
+        let [passwordValid,passwordErrorMessage] = validateRegisterPagePasswordInput();
+        if(!passwordValid){
+            throw new Error(passwordErrorMessage);
+        } 
         let body = {
             name: registerPageNameInput.value,
             email: registerPageEmailInput.value,
@@ -139,13 +157,12 @@ registerPageButton.addEventListener('click', (e) => {
             localStorage.setItem('token',`Bearer ${response.token}`);
             localStorage.setItem('userId',response.token)
             movePage('register-page','main-page');
-        })
-        .catch( (e) => {})
-        .finally( () => {
+        }).catch( (e) => {
             registerPageButton.disabled = false;
-        });
-    } else {
-        showWarningModal('Error','The Password Field and the Confirm Password Field does not have the same value');
+        })
+    } catch(e){
+        registerPageButton.disabled = false;
+        showMessageModal('Error', e.message)
     }
 })
 
@@ -181,15 +198,11 @@ let mainPageStateObject = { // State Object which is used to help us keep track 
 
 
 const getChannelData = (channelListObject,userList) => { //Function that will trigger when a user visits a channel, sets up the channel messages, infinite scroll, and also the channel details
-    removeInfiniteScroll();
-    sendMessageButton.removeEventListener('click',sendMessageFunction);
     let channelId = channelListObject.id;
     let channelName = channelListObject.textContent.slice(1);
     let channelInputDiv = document.getElementById('channel-input-div');
-    messageWindow.replaceChildren();
-    let userInChannel = channelListObject.getAttribute('data-user-in-channel') === 'false'?false:true;
-    getChannelDetails(channelId,channelName,userInChannel).then((userList) => {
-        chatTextArea.value = '';
+    // let userInChannel = channelListObject.getAttribute('data-user-in-channel') === 'false'?false:true;
+    getChannelDetails(channelId,channelName).then(([userList,userInChannel]) => {
         mainPageStateObject = {
             currentIndex:0,
             channelId,
@@ -197,6 +210,12 @@ const getChannelData = (channelListObject,userList) => { //Function that will tr
             endOfPage: false,
             userList
         }
+        removeInfiniteScroll();
+        sendMessageButton.removeEventListener('click',sendMessageFunction);
+        messageWindow.replaceChildren();
+        chatTextArea.value = '';
+        console.log(`user in channel is ${userInChannel}`);
+        console.log(mainPageStateObject.currentIndex);
         if(userInChannel){
             let loadingSpinnerDiv = document.createElement('div');
             loadingSpinnerDiv.setAttribute('class','d-none d-flex justify-content-center');
@@ -207,8 +226,10 @@ const getChannelData = (channelListObject,userList) => { //Function that will tr
             loadingSpinnerDiv.appendChild(loadingSpinner);
             messageWindow.appendChild(loadingSpinnerDiv);
             getChannelMessages(channelId,false).then((r) => {
-                messageWindow.addEventListener("scroll", handleInfiniteScroll);
-                messageWindow.scrollTop = messageWindow.scrollHeight;
+                if(mainPageStateObject.currentIndex !== -1){
+                    messageWindow.addEventListener("scroll", handleInfiniteScroll);
+                    messageWindow.scrollTop = messageWindow.scrollHeight;
+                }
                 if(chatTextArea.hasAttribute('disabled')){
                     chatTextArea.removeAttribute('disabled');
                     fileInput.removeAttribute('disabled');
@@ -288,7 +309,7 @@ const refreshChannelList = (channelId,modalObject=null) => {
 
 //Channel Message Section
 
-const getSendMessageBody = () => {
+const getCreateOrEditMessageRequest = (fileInput,textArea, previousTextValue = null) => {
     return new Promise( (resolve,reject) => {
         let messageBody = {}
         if (fileInput.files[0]) {
@@ -301,11 +322,16 @@ const getSendMessageBody = () => {
                 reject(e);
             })
         } else {
-            if(chatTextArea.value.trim().length < 1){
-                reject("Message cannot be empty");
+            if(textArea.value.trim().length < 1){
+                reject('Message cannot be empty');
+            }
+            if(previousTextValue !== null){
+                if(textArea.value.trim() === previousTextValue){
+                    reject('Cannot send the same exact message')
+                }
             }
             messageBody = {
-                message:chatTextArea.value
+                message:textArea.value
             }
             resolve(messageBody);
         }
@@ -313,7 +339,7 @@ const getSendMessageBody = () => {
 }
 
 const sendMessageFunction = () => {
-    getSendMessageBody().then( (messageBody) => {
+    getCreateOrEditMessageRequest(fileInput,chatTextArea).then( (messageBody) => {
         let sendMessageApi = apiCall(`message/${mainPageStateObject.channelId}`,'POST',messageBody).then((r) => {
             let members = mainPageStateObject.userList;
             mainPageStateObject.currentIndex+=1;
@@ -348,7 +374,7 @@ const sendMessageFunction = () => {
 
             }).catch ((e) => {});
         }).catch((e) => {});
-    }).catch((e) => showWarningModal('Error', e))
+    }).catch((e) => showMessageModal('Error', e))
 }
 
 openButton.addEventListener('click',(e) => {
@@ -395,7 +421,7 @@ fileInput.addEventListener('change', (e) => {
             throw Error(e);
         })
     } catch (e) {
-        showWarningModal('Error',e);
+        showMessageModal('Error',e);
         fileInput.value = '';
     }
 })
@@ -424,6 +450,7 @@ const handleInfiniteScroll = () => { //Infinite Scroll , Inspired from: https://
                 getChannelMessages(mainPageStateObject.channelId).then((response) => {
                     if (mainPageStateObject.currentIndex === -1) {
                         removeInfiniteScroll();
+                        showMessageModal('Notice','No More Message to Be Loaded');
                     }
                     messageWindow.scrollTop = messageWindow.scrollHeight - previousScrollHeight - 100;
                 }).catch(() => {
@@ -446,6 +473,7 @@ const removeInfiniteScroll = () => {
 export const getChannelMessages = (channelId, beforeScroll = true) => {
     return new Promise( (resolve,reject) => {
         let memberDetails = mainPageStateObject.userList;
+        console.log(`Index before call is ${mainPageStateObject.currentIndex}`);
         let getMessageApi = apiCall(`message/${channelId}`,'GET',null,`start=${mainPageStateObject.currentIndex}`);
         getMessageApi.then((response) => {
             if(response.messages.length > 0) {
@@ -505,6 +533,108 @@ const emojiHandler = (emojiButton, emojiString, channelId, messageId) => {
     }
 }
 
+const createEdittedSection = (timeString) => {
+    let editedText = document.createElement('p');
+    editedText.setAttribute('class','mb-0');
+    editedText.textContent = `Edited at ${timeString}`;
+    return editedText;
+}
+
+const generateBodySection = (textMessage, image = null) => {
+    if(image !== null){
+        let imageDiv = document.createElement('div');
+        imageDiv.setAttribute('class','image-content background-image-contain');
+        imageDiv.style.backgroundImage = `url(${image})`;
+        return imageDiv;
+    } else {
+        let bodyText = document.createElement('p');
+        bodyText.setAttribute('class','fs-6');
+        bodyText.textContent = textMessage;
+        return bodyText;
+    }
+}
+
+
+const openImageModal = (messageId) => {
+    let imageModalBase = createBasicModalStructure();
+    let imageModal = new bootstrap.Modal(imageModalBase);
+    imageModalBase.children[0].classList.add('modal-xl');
+    imageModalBase.children[0].classList.add('p-2');
+    imageModalBase.children[0].children[0].children[2].remove();
+    let imageModalHeader = imageModalBase.children[0].children[0].children[0];
+
+    let imageModalDiv = document.createElement('div');
+    imageModalDiv.setAttribute('class','d-flex flex-row align-items-center gap-1 py-1 h-100');
+    let previousButton = document.createElement('button');
+    let nextButton = document.createElement('button');
+    previousButton.setAttribute('class','btn btn-light border border-dark h-10');
+    nextButton.setAttribute('class','btn btn-light border border-dark h-10');
+    let previousIcon = document.createElement('i');
+    let nextIcon = document.createElement('i');
+    previousIcon.setAttribute('class','bi bi-arrow-left fs-5');
+    nextIcon.setAttribute('class','bi bi-arrow-right fs-5');
+    previousButton.setAttribute('aria-label','Previous Image Button');
+    nextButton.setAttribute('aria-label','Next Image Button');
+    previousButton.appendChild(previousIcon);
+    nextButton.appendChild(nextIcon);
+    let imageModalImageDiv = document.createElement('div');
+    imageModalImageDiv.setAttribute('class','w-100 flex-grow-1 w-100 d-flex flex-row justify-content-center');
+    imageModalDiv.appendChild(previousButton);
+    imageModalDiv.appendChild(imageModalImageDiv);
+    imageModalDiv.appendChild(nextButton);
+    imageModalBase.children[0].children[0].children[1].appendChild(imageModalDiv);
+    imageModalBase.children[0].children[0].children[1].classList.add('px-0')
+    let imageModalImage = document.createElement('img');
+    imageModalImageDiv.appendChild(imageModalImage);
+    imageModalImage.setAttribute('class','mw-100 mh-100');
+    getAllChannelMessages(mainPageStateObject.channelId).then((messages) => {
+        let messageWithImages = messages.filter((message) => message.image).reverse();
+        let maxImageIndex = messageWithImages.length - 1;
+        let currentImageIndex = messageWithImages.findIndex((message) => message.id == messageId);
+        imageModalHeader.children[0].textContent = `Viewing Image ${currentImageIndex} out of ${maxImageIndex} Images`;
+        if(currentImageIndex === 0){
+            previousButton.setAttribute('disabled','');
+        }
+        if(currentImageIndex === maxImageIndex) {
+            nextButton.setAttribute('disabled', '');
+        }
+        imageModalImage.setAttribute('src',messageWithImages[currentImageIndex].image);
+
+
+        let imageModalButtonHandler = (action) => {
+            if(action === 'next'){
+                currentImageIndex+=1;
+            } else if(action === 'prev') {
+                currentImageIndex-=1;
+            }
+            imageModalImage.setAttribute('src',messageWithImages[currentImageIndex].image);
+            imageModalHeader.children[0].textContent = `Viewing Image ${currentImageIndex} out of ${maxImageIndex} Images`;
+            if(currentImageIndex === 0){
+                previousButton.setAttribute('disabled','');
+            }
+            if(currentImageIndex === maxImageIndex) {
+                nextButton.setAttribute('disabled', '');
+            }
+            if(currentImageIndex > 0 && currentImageIndex <= maxImageIndex){
+                previousButton.removeAttribute('disabled');
+            }
+            if(currentImageIndex >= 0 && currentImageIndex < maxImageIndex){
+                nextButton.removeAttribute('disabled');
+            }
+        }
+
+        nextButton.addEventListener('click', (e) => {
+            imageModalButtonHandler('next');
+        })
+
+        previousButton.addEventListener('click', (e) => {
+            imageModalButtonHandler('prev');
+        })
+
+    })
+    imageModal.show();
+}
+
 
 const createMessage = (messageObj,disableButtons = false) => {
     let channelId = mainPageStateObject.channelId;
@@ -517,7 +647,7 @@ const createMessage = (messageObj,disableButtons = false) => {
     messagePictureSection.setAttribute('class','message-user-picture-section');
 
     let userProfilePictureDiv = document.createElement('div');
-    userProfilePictureDiv.setAttribute('class','message-user-picture rounded-circle m-1 border border-dark');
+    userProfilePictureDiv.setAttribute('class','message-user-picture w-80 background-image-cover rounded-circle m-1 border border-dark');
     messagePictureSection.appendChild(userProfilePictureDiv);
 
     let messageContentSectionDiv = document.createElement('div');
@@ -538,16 +668,15 @@ const createMessage = (messageObj,disableButtons = false) => {
 
     let messageContentSection = document.createElement('div');
     messageContentSection.setAttribute('class','message-content text-wrap py-1');
-    if(messageObj.image !== null) {
-        let imageDiv = document.createElement('div');
-        imageDiv.setAttribute('class','image-content');
-        imageDiv.style.backgroundImage = `url(${messageObj.image})`;
-        messageContentSection.appendChild(imageDiv);
-    } else {
-        let bodyText = document.createElement('p');
-        bodyText.setAttribute('class','fs-6');
-        bodyText.textContent = messageObj.message;
-        messageContentSection.appendChild(bodyText);
+    
+    let bodyContent = generateBodySection(messageObj.message,messageObj.image?messageObj.image:null);
+    messageContentSection.appendChild(bodyContent);
+
+    if(messageObj.image && !disableButtons){
+        bodyContent.classList.add('pointer');
+        bodyContent.addEventListener('click',(e) => {
+            openImageModal(messageObj.id);
+        })
     }
 
     messageContentSectionDiv.appendChild(messageContentSection);
@@ -556,9 +685,7 @@ const createMessage = (messageObj,disableButtons = false) => {
     messageEditedDiv.setAttribute('class','w-100 text-wrap border-top border-dark-subtle d-flex flex-row d-flex');
 
     if(messageObj.edited){
-        let editedText = document.createElement('p');
-        editedText.setAttribute('class','mb-0');
-        editedText.textContent = `Edited at ${messageObj.editedAt}`
+        let editedText = createEdittedSection(messageObj.editedAt);
         messageEditedDiv.appendChild(editedText);
     }
 
@@ -593,7 +720,149 @@ const createMessage = (messageObj,disableButtons = false) => {
         let editButton = document.createElement('button');
         editButton.setAttribute('class','btn btn-link mb-0 p-0');
         editButton.textContent = "Edit";
+        let previousMessageValue = messageObj.message?messageObj.message:'';
+        let editMessageModalBase = createBasicModalStructure();
+        let editMessageModal = new bootstrap.Modal(editMessageModalBase);
+        let editMessageModalHeader = editMessageModalBase.children[0].children[0].children[0];
+        let editMessageModalBody = editMessageModalBase.children[0].children[0].children[1];
+        let editMessageModalFooter = editMessageModalBase.children[0].children[0].children[2];
+        editMessageModalHeader.children[0].textContent = 'Edit Message';
         
+        let editMessageRadioDiv = document.createElement('div');
+        let editTextTypeRadioLabel = document.createElement('label');
+        let editImageTypeRadioLabel = document.createElement('label');
+
+        let editTextTypeRadio = document.createElement('input');
+        let editImageTypeRadio = document.createElement('input');
+
+        let editMessageTextArea = document.createElement('textarea');
+        editMessageTextArea.textContent = previousMessageValue;
+        editMessageTextArea.setAttribute('class',`${messageObj.message?'':'d-none '}w-100`);
+
+        let editMessageImageDiv = document.createElement('div');
+        editMessageImageDiv.setAttribute('class',`${messageObj.image?'':'d-none'}`);
+
+        let editMessageImageInput = document.createElement('input');
+        editMessageImageInput.setAttribute('type','file');
+        editMessageImageInput.setAttribute('class','form-control mb-2');
+
+        let editMessageImagePreview = document.createElement('div');
+        editMessageImagePreview.setAttribute('class','editMessageImagePreview');
+        if(messageObj.image != null){
+            editMessageImagePreview.style.backgroundImage = `url(${messageObj.image})`;
+        }
+        editMessageImageDiv.appendChild(editMessageImageInput);
+        editMessageImageDiv.appendChild(editMessageImagePreview);
+        
+        editMessageImageInput.addEventListener('change', (e) => {
+            try {
+                fileToDataUrl(editMessageImageInput.files[0]).then((base64String) => {
+                    editMessageImagePreview.style.backgroundImage = `url(${base64String})`;
+                }).catch(e => {
+                    throw Error(e);
+                })
+            } catch (e) {
+                showMessageModal('Error',e);
+                fileInput.value = '';
+            }
+        })
+
+
+        editMessageRadioDiv.setAttribute('class','form-check d-flex flex-row gap-1 mb-2');
+
+        editTextTypeRadio.setAttribute('type','radio');
+        editTextTypeRadio.setAttribute('value','text');
+        editTextTypeRadio.setAttribute('id','message-edit-text-radio');
+        editTextTypeRadio.setAttribute('name','message-edit-radio');
+        editTextTypeRadioLabel.setAttribute('class','form-check-label');
+        editTextTypeRadioLabel.setAttribute('for','message-edit-text-radio');
+        editTextTypeRadioLabel.textContent = 'Text';
+
+        editImageTypeRadio.setAttribute('type','radio');
+        editImageTypeRadio.setAttribute('value','image');
+        editImageTypeRadio.setAttribute('id','message-edit-image-radio');
+        editImageTypeRadio.setAttribute('name','message-edit-radio');
+        editImageTypeRadioLabel.setAttribute('class','form-check-label');
+        editImageTypeRadioLabel.setAttribute('for','message-edit-text-radio');
+        editImageTypeRadioLabel.textContent = 'Image';
+        if(messageObj.message){
+            editTextTypeRadio.checked = true;
+        } else {
+            editImageTypeRadio.checked = true;
+        }
+
+        let handleRadioSelectionChange = (e) => {
+            if(editTextTypeRadio.checked){
+                editMessageImagePreview.style.backgroundImage = '';
+                editMessageImageInput.value = '';
+                editMessageTextArea.value = previousMessageValue;
+                if(editMessageTextArea.classList.contains('d-none')){
+                    editMessageTextArea.classList.remove('d-none');
+                }
+                if(!editMessageImageDiv.classList.contains('d-none')){
+                    editMessageImageDiv.classList.add('d-none');
+                }
+            } else if (editImageTypeRadio.checked){
+                if(editMessageImageDiv.classList.contains('d-none')){
+                    editMessageImageDiv.classList.remove('d-none');
+                }
+                if(!editMessageTextArea.classList.contains('d-none')){
+                    editMessageTextArea.classList.add('d-none');
+                }
+                editMessageTextArea.value = '';
+            }
+        }
+
+
+        editTextTypeRadio.addEventListener('click',handleRadioSelectionChange);
+        editImageTypeRadio.addEventListener('click',handleRadioSelectionChange);
+
+        editMessageRadioDiv.appendChild(editTextTypeRadioLabel);
+        editMessageRadioDiv.appendChild(editTextTypeRadio);
+        editMessageRadioDiv.appendChild(editImageTypeRadioLabel);
+        editMessageRadioDiv.appendChild(editImageTypeRadio);
+
+        editMessageModalBody.appendChild(editMessageRadioDiv);
+        editMessageModalBody.appendChild(editMessageTextArea);
+        editMessageModalBody.appendChild(editMessageImageDiv);
+        editButton.addEventListener('click',(e) => {
+            editMessageModal.show();
+        })
+
+        let confirmEditMessageButton = document.createElement('button');
+        confirmEditMessageButton.setAttribute('class','btn btn-primary');
+        confirmEditMessageButton.textContent = "Edit";
+
+        editMessageModalFooter.prepend(confirmEditMessageButton);
+
+        let editMessageConfirmationModalBase = createConfirmationModal('Warning','Are you sure you want to edit this message');
+        let editMessageConfirmationModal = new bootstrap.Modal(editMessageConfirmationModalBase);
+        let editMessageConfirmationButton = editMessageConfirmationModalBase.children[0].children[0].children[2].children[0];
+
+        confirmEditMessageButton.addEventListener('click',(e) => {
+            editMessageConfirmationModal.show();
+        })
+
+        editMessageConfirmationButton.addEventListener('click',(e) => {
+            getCreateOrEditMessageRequest(editMessageImageInput,editMessageTextArea,previousMessageValue).then( (messageBody) => {
+                let editMessageApi = apiCall(`message/${mainPageStateObject.channelId}/${messageObj.id}`,'PUT',messageBody).then((r) => {
+                    let editTime = new Date().toISOString();
+                    let editedText = createEdittedSection(`${convertDateToDDMMYY(editTime)} ${getDateHHMM(editTime)}`);
+                    messageEditedDiv.replaceChildren(editedText);
+                    let newBodyContent = generateBodySection(messageBody.message,messageBody.image?messageBody.image:null);
+                    messageContentSection.replaceChildren(newBodyContent);
+                    if(messageBody.image){
+                        newBodyContent.classList.add('pointer');
+                        newBodyContent.addEventListener('click',(e) => {
+                            openImageModal(messageObj.id);
+                        })
+                    }
+                    editMessageConfirmationModal.hide();
+                    editMessageModal.hide();
+                }).catch((e) => {});
+            }).catch((e) => showMessageModal('Error', e))
+        })
+
         let deleteButton = document.createElement('button')
         deleteButton.setAttribute('class','btn btn-danger border border-dark emoji-button p-1 me-1');
         let deleteButtonIcon = document.createElement('i');
@@ -702,201 +971,287 @@ const createMessage = (messageObj,disableButtons = false) => {
 
 //Channel Details Section
 
-const getChannelDetails = (channelId, channelName, userInChannel) => {
+const generateInviteCheckBoxes = (userObj) => {
+    let checkBoxContainerDiv = document.createElement('div');
+    checkBoxContainerDiv.setAttribute('class','d-flex flex-row');
+    let checkBoxLabelDiv = document.createElement('div')
+    let checkBoxDiv = document.createElement('div')
+    let checkBoxLabel = document.createElement('label');
+    let checkBoxElement = document.createElement('input');
+    checkBoxLabel.setAttribute('class','form-check-label');
+    checkBoxLabel.setAttribute('for',`checkbox-${userObj.id}`);
+    checkBoxLabel.textContent = userObj.name;
+    checkBoxLabelDiv.setAttribute('class','w-90');
+    checkBoxLabelDiv.appendChild(checkBoxLabel);
+
+    
+    checkBoxElement.setAttribute('type','checkbox');
+    checkBoxElement.setAttribute('id',`checkbox-${userObj.id}`);
+    checkBoxElement.setAttribute('value',userObj.id);
+    checkBoxElement.setAttribute('class','form-check-input');
+
+    checkBoxDiv.appendChild(checkBoxElement);
+    checkBoxContainerDiv.appendChild(checkBoxLabelDiv);
+    checkBoxContainerDiv.appendChild(checkBoxDiv)
+    return checkBoxContainerDiv;
+}
+
+
+
+const getChannelDetails = (channelId, channelName) => {
     return new Promise( (resolve, reject) => {
         let channelPageDiv = document.getElementById('channel-page-section');
-        channelPageDiv.replaceChildren();
-        let channelNameHeading = document.createElement('h5');
-        channelNameHeading.textContent = channelName;
-        channelNameHeading.setAttribute('class','text-wrap')
-        channelPageDiv.appendChild(channelNameHeading);
-        if (!userInChannel){
-            let joinButton = document.createElement('button');
-            joinButton.setAttribute('class', 'btn btn-primary my-3');
-            joinButton.textContent = 'Join Channel';
-            joinButton.setAttribute('aria-label','Join Button');
-            channelPageDiv.appendChild(joinButton);
-            joinButton.addEventListener('click',(e) => {
-                let joinChannel =  apiCall(`channel/${channelId}/join`,'POST');
-                joinChannel.then( (response) => {
-                    if (!response.error) {
-                        refreshChannelList(channelId)
-                    }
-                }).catch((e) => {})
-            })  
-            resolve(null);
-        } else {
-            let channelInformation =  apiCall(`channel/${channelId}`,'GET');
-            channelInformation.then( (response) => {
-                getListOfUserDetails(response.members).then((members) => {
-                    let editChannelButton = document.createElement('button');
-                    editChannelButton.setAttribute('class', 'btn btn-light border-dark-subtle  mb-2 me-md-2');
-                    editChannelButton.textContent = 'Edit Channel';
-                    editChannelButton.setAttribute('aria-label','Edit Channel Button');
-                    editChannelButton.addEventListener('click', (e) => {
-                        editChannelModal.show();
-                    })
+        let channelInformation =  apiCall(`channel/${channelId}`,'GET',null,null,false);
+        channelInformation.then((response) => {
+            channelPageDiv.replaceChildren();
+            let channelNameHeading = document.createElement('h5');
+            channelNameHeading.textContent = channelName;
+            channelNameHeading.setAttribute('class','text-wrap')
+            channelPageDiv.appendChild(channelNameHeading);
+            getObjectOfUserDetails(response.members).then((members) => {
+                let editChannelButton = document.createElement('button');
+                editChannelButton.setAttribute('class', 'btn btn-light border-dark-subtle  mb-2 me-md-2');
+                editChannelButton.textContent = 'Edit Channel';
+                editChannelButton.setAttribute('aria-label','Edit Channel Button');
+                editChannelButton.addEventListener('click', (e) => {
+                    editChannelModal.show();
+                })
 
-                    let editChannelModalBase = createBasicModalStructure();
-                    let editChannelModal = new bootstrap.Modal(editChannelModalBase);
-                    let editChannelModalHeader = editChannelModalBase.children[0].children[0].children[0];
-                    let editChannelModalBody = editChannelModalBase.children[0].children[0].children[1];
-                    let editChannelModalFooter = editChannelModalBase.children[0].children[0].children[2];
-                    editChannelModalHeader.children[0].textContent = 'Edit Channel';
-                    let editChannelFormFormat = [
-                        {
-                            type: 'input',
-                            name: 'Channel Name',
-                            value: channelName,
-                            attributes: {
-                                type: 'text',
-                                class: 'form-control mb-2',
-                                id: 'edit-channel-name-field'
-                            }
+                let editChannelModalBase = createBasicModalStructure();
+                let editChannelModal = new bootstrap.Modal(editChannelModalBase);
+                let editChannelModalHeader = editChannelModalBase.children[0].children[0].children[0];
+                let editChannelModalBody = editChannelModalBase.children[0].children[0].children[1];
+                let editChannelModalFooter = editChannelModalBase.children[0].children[0].children[2];
+                editChannelModalHeader.children[0].textContent = 'Edit Channel';
+                let editChannelFormFormat = [
+                    {
+                        type: 'input',
+                        name: 'Channel Name',
+                        value: channelName,
+                        attributes: {
+                            type: 'text',
+                            class: 'form-control mb-2',
+                            id: 'edit-channel-name-field'
+                        }
+                    },
+                    {
+                        type: 'input',
+                        name: 'Channel Description',
+                        value: response.description,
+                        attributes: {
+                            type: 'text',
+                            class: 'form-control mb-2',
+                            id: 'edit-channel-description-field'
                         },
-                        {
-                            type: 'input',
-                            name: 'Channel Description',
-                            value: response.description,
-                            attributes: {
-                                type: 'text',
-                                class: 'form-control mb-2',
-                                id: 'edit-channel-description-field'
-                            },
+                    }
+                ]
+                let editChannelForm = createForm(editChannelFormFormat);
+                editChannelModalBody.appendChild(editChannelForm);
+
+                let editChannelModalEditButton = document.createElement('button');
+                editChannelModalEditButton.setAttribute('class','btn btn-primary');
+                editChannelModalEditButton.textContent = "Edit";
+                editChannelModalEditButton.addEventListener('click', (e) => {
+                    let edittedChannelName = document.getElementById('edit-channel-name-field').value;
+                    let edittedChannelDescription = document.getElementById('edit-channel-description-field').value;
+                    let editRequest = {
+                        name:edittedChannelName,
+                        description: edittedChannelDescription
+                    }
+                    let editApiRequest = apiCall(`channel/${channelId}`,'PUT',editRequest);
+                    editApiRequest.then( (editResponse) => {
+                        if (!editResponse.error) {
+                            refreshChannelList(channelId,editChannelModal);
                         }
-                    ]
-                    let editChannelForm = createForm(editChannelFormFormat);
-                    editChannelModalBody.appendChild(editChannelForm);
+                        
+                    }).catch((e) => {})
+                })
 
-                    let editChannelModalEditButton = document.createElement('button');
-                    editChannelModalEditButton.setAttribute('class','btn btn-primary');
-                    editChannelModalEditButton.textContent = "Edit";
-                    editChannelModalEditButton.addEventListener('click', (e) => {
-                        let edittedChannelName = document.getElementById('edit-channel-name-field').value;
-                        let edittedChannelDescription = document.getElementById('edit-channel-description-field').value;
-                        let editRequest = {
-                            name:edittedChannelName,
-                            description: edittedChannelDescription
+                editChannelModalFooter.prepend(editChannelModalEditButton);
+
+                let leaveChannelButton = document.createElement('button');
+                leaveChannelButton.setAttribute('class', 'btn btn-danger mb-2 me-md-2');
+                leaveChannelButton.textContent = 'Leave Channel';
+                leaveChannelButton.setAttribute('aria-label','Leave Channel Button');
+
+                let leaveChannelModalBase = createConfirmationModal('Warning','Are you sure you want to leave this channel',)
+                let leaveChannelModal = new bootstrap.Modal(leaveChannelModalBase);
+
+
+                leaveChannelButton.addEventListener('click', (e) => {
+                    leaveChannelModal.show();
+                })
+
+                let leaveChannelConfirmationButton = leaveChannelModalBase.children[0].children[0].children[2].children[0];
+                leaveChannelConfirmationButton.addEventListener('click', (e) => {
+                    let leaveChannelApiRequest = apiCall(`channel/${channelId}/leave`,'POST');
+                    leaveChannelApiRequest.then( (leaveResponse) => {
+                        if (!leaveResponse.error){
+                            refreshChannelList(channelId,leaveChannelModal);
                         }
-                        let editApiRequest = apiCall(`channel/${channelId}`,'PUT',editRequest);
-                        editApiRequest.then( (editResponse) => {
-                            if (!editResponse.error) {
-                                refreshChannelList(channelId,editChannelModal);
+                    }).catch((e) => {})
+                })
+
+                let pinnedMessageButton = document.createElement('button');
+                pinnedMessageButton.setAttribute('class', 'btn btn-light border border-dark me-md-2 mb-2');
+                pinnedMessageButton.textContent = 'View Pinned Messages';
+                pinnedMessageButton.setAttribute('aria-label','View Pinned Message Button');
+
+                let pinnedMessageModalBase = createBasicModalStructure();
+                let pinnedMessageModal = new bootstrap.Modal(pinnedMessageModalBase);
+                let pinnedMessageModalHeader = pinnedMessageModalBase.children[0].children[0].children[0];
+                let pinnedMessageModalBody = pinnedMessageModalBase.children[0].children[0].children[1];
+                let pinnedMessageModalFooter = pinnedMessageModalBase.children[0].children[0].children[2];
+                pinnedMessageModalHeader.children[0].textContent = 'Pinned Messages';
+                let pinnedMessagesDiv = document.createElement('div');
+                pinnedMessagesDiv.setAttribute('class','w-100 pt-1 d-flex flex-column gap-2');
+                pinnedMessagesDiv.setAttribute('id','pinned-messages');
+                pinnedMessageModalBase.addEventListener('shown.bs.modal', (e) => {
+                    pinnedMessageModalBody.scrollTop = pinnedMessageModalBody.scrollHeight;
+                })
+
+                pinnedMessageButton.addEventListener('click', (e) => {
+                    pinnedMessagesDiv.replaceChildren();
+                    getAllChannelMessages(channelId).then((messages) => {
+                        messages = messages.filter((message) => message.pinned === true );
+                        messages.reverse().forEach((message) => {
+                            let messageObject = {
+                                id: message.id,
+                                senderId: message.sender,
+                                sender: members[message.sender].name,
+                                userimage: members[message.sender].image,
+                                messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
+                                message: message.message,
+                                image: message.image?message.image:null,
+                                edited: message.edited,
+                                editedAt: message.edited?`${convertDateToDDMMYY(message.editedAt)} ${getDateHHMM(message.editedAt)}`:null,
+                                pinned: message.pinned,
+                                reacts: message.reacts,
                             }
-                            
-                        }).catch((e) => {})
+                            let chatBoxDiv = createMessage(messageObject, true);
+                            pinnedMessagesDiv.appendChild(chatBoxDiv);
+                        })
+                        pinnedMessageModalBody.appendChild(pinnedMessagesDiv);
+            
+                        pinnedMessageModal.show();
                     })
+                })
+                let inviteToChannelButton = document.createElement('button');
+                inviteToChannelButton.setAttribute('class', 'btn btn-light border border-dark mb-2');
+                inviteToChannelButton.textContent = 'Invite People';
+                inviteToChannelButton.setAttribute('aria-label','Invite PeopleButton');
 
-                    editChannelModalFooter.prepend(editChannelModalEditButton);
+                let inviteToChannelModalBase = createBasicModalStructure();
+                let inviteToChannelModal = new bootstrap.Modal(inviteToChannelModalBase);
+                let inviteToChannelModalHeader = inviteToChannelModalBase.children[0].children[0].children[0];
+                let inviteToChannelModalBody = inviteToChannelModalBase.children[0].children[0].children[1];
+                let inviteToChannelModalFooter = inviteToChannelModalBase.children[0].children[0].children[2];
+                inviteToChannelModalHeader.children[0].textContent = 'Invite User to Channel';
 
-                    let leaveChannelButton = document.createElement('button');
-                    leaveChannelButton.setAttribute('class', 'btn btn-danger mb-2 me-md-2');
-                    leaveChannelButton.textContent = 'Leave Channel';
-                    leaveChannelButton.setAttribute('aria-label','Leave Channel Button');
+                let inviteModalInviteButton = document.createElement('button');
+                inviteModalInviteButton.setAttribute('class','btn btn-primary');
+                inviteModalInviteButton.textContent = "Invite Users";
+                inviteToChannelModalFooter.prepend(inviteModalInviteButton);
 
-                    let leaveChannelModalBase = createConfirmationModal('Warning','Are you sure you want to leave this channel',)
-                    let leaveChannelModal = new bootstrap.Modal(leaveChannelModalBase);
-
-
-                    leaveChannelButton.addEventListener('click', (e) => {
-                        leaveChannelModal.show();
-                    })
-
-                    let leaveChannelConfirmationButton = leaveChannelModalBase.children[0].children[0].children[2].children[0];
-                    leaveChannelConfirmationButton.addEventListener('click', (e) => {
-                        let leaveChannelApiRequest = apiCall(`channel/${channelId}/leave`,'POST');
-                        leaveChannelApiRequest.then( (leaveResponse) => {
-                            if (!leaveResponse.error){
-                                refreshChannelList(channelId,leaveChannelModal);
-                            }
-                        }).catch((e) => {})
-                    })
-
-                    let pinnedMessageButton = document.createElement('button');
-                    pinnedMessageButton.setAttribute('class', 'btn btn-light border border-dark me-md-2 mb-2');
-                    pinnedMessageButton.textContent = 'View Pinned Messages';
-                    pinnedMessageButton.setAttribute('aria-label','View Pinned Message Button');
-
-                    let pinnedMessageModalBase = createBasicModalStructure();
-                    let pinnedMessageModal = new bootstrap.Modal(pinnedMessageModalBase);
-                    let pinnedMessageModalHeader = pinnedMessageModalBase.children[0].children[0].children[0];
-                    let pinnedMessageModalBody = pinnedMessageModalBase.children[0].children[0].children[1];
-                    let pinnedMessageModalFooter = pinnedMessageModalBase.children[0].children[0].children[2];
-                    pinnedMessageModalHeader.children[0].textContent = 'Pinned Messages';
-                    let pinnedMessagesDiv = document.createElement('div');
-                    pinnedMessagesDiv.setAttribute('class','w-100 pt-1 d-flex flex-column gap-2');
-                    pinnedMessagesDiv.setAttribute('id','pinned-messages');
-                    pinnedMessageModalBase.addEventListener('shown.bs.modal', (e) => {
-                        pinnedMessageModalBody.scrollTop = pinnedMessageModalBody.scrollHeight;
-                    })
-
-                    pinnedMessageButton.addEventListener('click', (e) => {
-                        pinnedMessagesDiv.replaceChildren();
-                        getAllChannelMessages(channelId).then((messages) => {
-                            messages = messages.filter((message) => message.pinned === true );
-                            messages.reverse().forEach((message) => {
-                                let messageObject = {
-                                    id: message.id,
-                                    senderId: message.sender,
-                                    sender: members[message.sender].name,
-                                    userimage: members[message.sender].image,
-                                    messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
-                                    message: message.message,
-                                    image: message.image?message.image:null,
-                                    edited: message.edited,
-                                    editedAt: message.edited?`${convertDateToDDMMYY(message.editedAt)} ${getDateHHMM(message.editedAt)}`:null,
-                                    pinned: message.pinned,
-                                    reacts: message.reacts,
+                inviteToChannelButton.addEventListener('click',(e) => {
+                    let allUsersList = apiCall('user','GET');
+                    allUsersList.then((response) => {
+                        let currentMemberInChannel = Object.keys(members);
+                        let usersNotInChannel = response.users.filter((user) => !currentMemberInChannel.includes(user.id.toString()));
+                        usersNotInChannel = usersNotInChannel.map((userObj) => userObj.id);
+                        console.log(usersNotInChannel);
+                        let getUserDetailsApi = getObjectOfUserDetails(usersNotInChannel);
+                        getUserDetailsApi.then((userObjects) => {
+                            let sortedArray = []
+                            for (let userId in userObjects){
+                                let userObject = {
+                                    id:userId,
+                                    ...userObjects[userId]
                                 }
-                                let chatBoxDiv = createMessage(messageObject, true);
-                                pinnedMessagesDiv.appendChild(chatBoxDiv);
+                                sortedArray.push(userObject);
+                            }
+                            sortedArray.sort((a,b) => {
+                                if (a.name < b.name) {
+                                    return -1;
+                                } else if (a.name == b.name) {
+                                    return 0;
+                                } else {
+                                    return 1;
+                                }
+                            
+                            });
+                            sortedArray.forEach((userObj) => {
+                                let checkbox = generateInviteCheckBoxes(userObj);
+                                checkbox.classList.add('border-bottom','border-dark');
+                                inviteToChannelModalBody.appendChild(checkbox);
+                            });
+                            inviteToChannelModalBody.lastChild.classList.remove('border-bottom','border-dark');
+                            inviteToChannelModal.show();
+                            inviteModalInviteButton.addEventListener('click', (e) => {
+                                let checkedButtons = inviteToChannelModalBody.querySelectorAll('input:checked');
+                                console.log(checkedButtons);
                             })
-                            pinnedMessageModalBody.appendChild(pinnedMessagesDiv);
-             
-                            pinnedMessageModal.show();
+
                         })
                     })
-                    let inviteToChannelButton = document.createElement('button');
-                    inviteToChannelButton.setAttribute('class', 'btn btn-light border border-dark mb-2');
-                    inviteToChannelButton.textContent = 'Invite People';
-                    inviteToChannelButton.setAttribute('aria-label','Invite PeopleButton');
+                })
 
 
-
-                    let channelType = channelDetailsSectionGenerator('Channel Type',`${response.private?'Private':'Public'}`);
-                    let channelCreator = channelDetailsSectionGenerator('Channel Creator',`${members[response.creator].name}`);
-                    let channelCreationDate = channelDetailsSectionGenerator('Channel Creation Date:',convertDateToDDMMYY(response.createdAt));
-                    let channelDescription = channelDetailsSectionGenerator('Channel Description',response.description.length === 0? "No Description":response.description);
-                    
-                    let channelMembersText = document.createElement('p');
-                    channelMembersText.setAttribute('class','fs-6 mb-0');
-                    channelMembersText.textContent = 'Channel Members:'
-                    let ulObject = document.createElement('ul');
-                    ulObject.style.listStylePosition = 'inside';
-                    ulObject.setAttribute('class','mb-4 mb-md-2 p-0');
+                let channelType = channelDetailsSectionGenerator('Channel Type',`${response.private?'Private':'Public'}`);
+                let channelCreator = channelDetailsSectionGenerator('Channel Creator',`${members[response.creator].name}`);
+                let channelCreationDate = channelDetailsSectionGenerator('Channel Creation Date:',convertDateToDDMMYY(response.createdAt));
+                let channelDescription = channelDetailsSectionGenerator('Channel Description',response.description.length === 0? "No Description":response.description);
                 
-                    for (let member in members){
-                        let liObj = document.createElement('li');
-                        liObj.setAttribute('class','px-1 py-1 text-nowrap');
-                        let aObj = document.createElement('a');
-                        aObj.textContent = members[member].name;
-                        liObj.appendChild(aObj);
-                        ulObject.appendChild(liObj);
-                    }
-                    channelPageDiv.appendChild(editChannelButton);
-                    channelPageDiv.appendChild(pinnedMessageButton);
-                    channelPageDiv.appendChild(inviteToChannelButton);
-                    channelPageDiv.appendChild(leaveChannelButton);
-                    channelPageDiv.appendChild(channelType);
-                    channelPageDiv.appendChild(channelCreator);
-                    channelPageDiv.appendChild(channelCreationDate);
-                    channelPageDiv.appendChild(channelDescription);
-                    channelPageDiv.appendChild(channelMembersText);
-                    channelPageDiv.appendChild(ulObject);
-                    resolve(members);
+                let channelMembersText = document.createElement('p');
+                channelMembersText.setAttribute('class','fs-6 mb-0');
+                channelMembersText.textContent = 'Channel Members:'
+                let ulObject = document.createElement('ul');
+                ulObject.style.listStylePosition = 'inside';
+                ulObject.setAttribute('class','mb-4 mb-md-2 p-0');
+            
+                for (let member in members){
+                    let liObj = document.createElement('li');
+                    liObj.setAttribute('class','px-1 py-1 text-nowrap');
+                    let aObj = document.createElement('a');
+                    aObj.textContent = members[member].name;
+                    liObj.appendChild(aObj);
+                    ulObject.appendChild(liObj);
+                }
+                channelPageDiv.appendChild(editChannelButton);
+                channelPageDiv.appendChild(pinnedMessageButton);
+                channelPageDiv.appendChild(inviteToChannelButton);
+                channelPageDiv.appendChild(leaveChannelButton);
+                channelPageDiv.appendChild(channelType);
+                channelPageDiv.appendChild(channelCreator);
+                channelPageDiv.appendChild(channelCreationDate);
+                channelPageDiv.appendChild(channelDescription);
+                channelPageDiv.appendChild(channelMembersText);
+                channelPageDiv.appendChild(ulObject);
+                resolve([members,true]);
                 }).catch((e) => {})
-            }).catch((e) => {})
-        }
+        }).catch((e) => {
+            if(e !== 'Server Error'){
+                channelPageDiv.replaceChildren();
+                let channelNameHeading = document.createElement('h5');
+                channelNameHeading.textContent = channelName;
+                channelNameHeading.setAttribute('class','text-wrap')
+                channelPageDiv.appendChild(channelNameHeading);
+                let joinButton = document.createElement('button');
+                joinButton.setAttribute('class', 'btn btn-primary my-3');
+                joinButton.textContent = 'Join Channel';
+                joinButton.setAttribute('aria-label','Join Button');
+                channelPageDiv.appendChild(joinButton);
+                joinButton.addEventListener('click',(e) => {
+                    let joinChannel =  apiCall(`channel/${channelId}/join`,'POST');
+                    joinChannel.then( (response) => {
+                        if (!response.error) {
+                            refreshChannelList(channelId)
+                        }
+                    }).catch((e) => {})
+                })  
+                resolve([null,false]);
+            }
+        })
     })
 }
 
@@ -994,5 +1349,5 @@ document.getElementById('notification-button').addEventListener('click', (e) => 
     // console.log(`Element Offset height is ${messageWindow.offsetHeight}`);
     // console.log(`Element Scroll Top is ${messageWindow.scrollTop}`);
     // console.log(`Element height + scroll is ${messageWindow.offsetHeight + messageWindow.scrollTop}`);
-    checkConnection();
+
 })

@@ -71,24 +71,13 @@
         width: 25%;
     }
 
-    .message-user-picture{
-        width: 80%;
-        aspect-ratio: 1 / 1;    
-        background-image: url('../assets/user.svg');
-        background-repeat: no-repeat;
-        background-size: cover;
-    }
-
     .message-content-section{
         width: 75%;
     }
     
     .image-content{
         width: 100%;
-        aspect-ratio: 1 / 1;
         background-image: url('../assets/test.png');
-        background-size: contain;
-        background-repeat: no-repeat;
     }
 
 
