@@ -38,14 +38,6 @@
         100% { -webkit-transform: translateX(0%); }
     }
 
-    #channel-messages {
-        height: 90%;
-    }
-
-    #channel-input-div {
-        height: 10%;
-    }
-
     .message-chatbox{
         height: auto;
         width: 100%;
@@ -60,6 +52,10 @@
     }
     
     .image-content{
+        width: 20%;
+    }
+
+    .profile-menu-image{
         width: 20%;
     }
 }

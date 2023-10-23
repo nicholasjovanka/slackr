@@ -13,7 +13,9 @@ import {
     getObjectOfUserDetails,
     channelDetailsSectionGenerator,
     getAllChannelMessages,
+    getSpecificChannelname,
     createConfirmationModal,
+    inviteMultipleUsers
 } from './helpers.js';
 
 
@@ -174,6 +176,9 @@ Main Page Code
 let openButton = document.getElementById('open-button');
 let channelBar = document.getElementById('channel-list-sidebar');
 
+let profileButton = document.getElementById('profile-button');
+let notificationButton = document.getElementById('profile-button');
+
 let messageWindow = document.getElementById('channel-messages');
 let chatTextAreaDiv = document.getElementById('text-area-div');
 let chatTextArea = document.getElementById('chat-input');
@@ -184,6 +189,7 @@ let fileInput = document.getElementById('file-input');
 let fileDisplayerDiv = document.getElementById('file-displayer-div');
 let fileInputCancelButton = document.getElementById('cancel-file-upload-button');
 let sendMessageButton = document.getElementById('send-message-button');
+
 
 
 //General Main Functions
@@ -197,57 +203,324 @@ let mainPageStateObject = { // State Object which is used to help us keep track 
 }
 
 
-const getChannelData = (channelListObject,userList) => { //Function that will trigger when a user visits a channel, sets up the channel messages, infinite scroll, and also the channel details
-    let channelId = channelListObject.id;
-    let channelName = channelListObject.textContent.slice(1);
-    let channelInputDiv = document.getElementById('channel-input-div');
-    // let userInChannel = channelListObject.getAttribute('data-user-in-channel') === 'false'?false:true;
-    getChannelDetails(channelId,channelName).then(([userList,userInChannel]) => {
-        mainPageStateObject = {
-            currentIndex:0,
-            channelId,
-            userInChannel,
-            endOfPage: false,
-            userList
-        }
-        removeInfiniteScroll();
-        sendMessageButton.removeEventListener('click',sendMessageFunction);
-        messageWindow.replaceChildren();
-        chatTextArea.value = '';
-        console.log(`user in channel is ${userInChannel}`);
-        console.log(mainPageStateObject.currentIndex);
-        if(userInChannel){
-            let loadingSpinnerDiv = document.createElement('div');
-            loadingSpinnerDiv.setAttribute('class','d-none d-flex justify-content-center');
-            loadingSpinnerDiv.setAttribute('id','chatbox-spinner');
-            loadingSpinnerDiv.setAttribute('role','status');
-            let loadingSpinner = document.createElement('div');
-            loadingSpinner.setAttribute('class','spinner-border');
-            loadingSpinnerDiv.appendChild(loadingSpinner);
-            messageWindow.appendChild(loadingSpinnerDiv);
-            getChannelMessages(channelId,false).then((r) => {
-                if(mainPageStateObject.currentIndex !== -1){
-                    messageWindow.addEventListener("scroll", handleInfiniteScroll);
-                    messageWindow.scrollTop = messageWindow.scrollHeight;
-                }
-                if(chatTextArea.hasAttribute('disabled')){
-                    chatTextArea.removeAttribute('disabled');
-                    fileInput.removeAttribute('disabled');
-                    fileInputLable.classList.remove('disabled');
-                    sendMessageButton.removeAttribute('disabled');
-                }
-                sendMessageButton.addEventListener('click',sendMessageFunction);
-            });
-        } else {
-            if(!chatTextArea.hasAttribute('disabled')){
-                chatTextArea.setAttribute('disabled','');
-                fileInput.setAttribute('disabled','');
-                fileInputLable.classList.add('disabled');
-                sendMessageButton.setAttribute('disabled','');
-            }
-        }
+let loadProfilePicture = () => {
+    let userId = localStorage.getItem('userId');
+    getObjectOfUserDetails([userId]).then((userObj) => {
+        let profilePicture = `url(${userObj[userId].image?userObj[userId].image:'../assets/user.svg'})`;
+        profileButton.style.backgroundImage = profilePicture;
     })
 }
+
+const getChannelData = (channelId) => { //Function that will trigger when a user visits a channel, sets up the channel messages, infinite scroll, and also the channel details
+    // let channelName = channelListObject.textContent.slice(1);
+    let channelInputDiv = document.getElementById('channel-input-div');
+    getSpecificChannelname(channelId).then((channelName) => {
+        getChannelDetails(channelId,channelName).then(([userList,userInChannel]) => {
+            mainPageStateObject = {
+                currentIndex:0,
+                channelId,
+                userInChannel,
+                endOfPage: false,
+                userList
+            }
+            removeInfiniteScroll();
+            sendMessageButton.removeEventListener('click',sendMessageFunction);
+            messageWindow.replaceChildren();
+            chatTextArea.value = '';
+            console.log(`user in channel is ${userInChannel}`);
+            console.log(mainPageStateObject.currentIndex);
+            if(userInChannel){
+                let loadingSpinnerDiv = document.createElement('div');
+                loadingSpinnerDiv.setAttribute('class','d-none d-flex justify-content-center');
+                loadingSpinnerDiv.setAttribute('id','chatbox-spinner');
+                loadingSpinnerDiv.setAttribute('role','status');
+                let loadingSpinner = document.createElement('div');
+                loadingSpinner.setAttribute('class','spinner-border');
+                loadingSpinnerDiv.appendChild(loadingSpinner);
+                messageWindow.appendChild(loadingSpinnerDiv);
+                getChannelMessages(channelId,false).then((r) => {
+                    if(mainPageStateObject.currentIndex !== -1){
+                        messageWindow.addEventListener("scroll", handleInfiniteScroll);
+                        messageWindow.scrollTop = messageWindow.scrollHeight;
+                    }
+                    if(chatTextArea.hasAttribute('disabled')){
+                        chatTextArea.removeAttribute('disabled');
+                        fileInput.removeAttribute('disabled');
+                        fileInputLable.classList.remove('disabled');
+                        sendMessageButton.removeAttribute('disabled');
+                    }
+                    sendMessageButton.addEventListener('click',sendMessageFunction);
+                });
+            } else {
+                if(!chatTextArea.hasAttribute('disabled')){
+                    chatTextArea.setAttribute('disabled','');
+                    fileInput.setAttribute('disabled','');
+                    fileInputLable.classList.add('disabled');
+                    sendMessageButton.setAttribute('disabled','');
+                }
+            }
+        })
+    })
+}
+
+//Navbar Section
+
+const profileSectionGenerator = (userId,edittable = false) => {
+    return new Promise((resolve,reject) => {
+        let profileModalBase = createBasicModalStructure();
+        let profileModal = new bootstrap.Modal(profileModalBase);
+        let profileModalHeader = profileModalBase.children[0].children[0].children[0];
+        let profileModalBody = profileModalBase.children[0].children[0].children[1];
+        let profileModalFooter = profileModalBase.children[0].children[0].children[2];
+        let profileBaseDiv = document.createElement('div');
+        profileBaseDiv.setAttribute('class','w-100 pt-1 d-flex flex-column gap-2');
+        let profileImageDiv = document.createElement('div');
+        profileImageDiv.setAttribute('class','rounded-circle profile-menu-image border border-dark-subtle background-image-cover align-self-center')
+        getObjectOfUserDetails([userId]).then((userObj) => {
+            let initialUserImage = `url(${userObj[userId].image?userObj[userId].image:'../assets/user.svg'})`;
+            profileImageDiv.style.backgroundImage = initialUserImage;
+            profileBaseDiv.appendChild(profileImageDiv);
+            if(edittable){
+                profileModalHeader.children[0].textContent = 'Edit Profile';
+                let editProfileFormFormat = [
+                    {
+                        type: 'input',
+                        name: 'Username',
+                        value: userObj[userId].name,
+                        attributes: {
+                            type: 'text',
+                            class: 'form-control mb-2',
+                            id: 'edit-profile-name-field',
+                            autocomplete: 'username'
+                        }
+                    },
+                    {
+                        type: 'input',
+                        name: 'Email',
+                        value: userObj[userId].email,
+                        attributes: {
+                            type: 'text',
+                            class: 'form-control mb-2',
+                            id: 'edit-profile-email-field',
+                            autocomplete: 'email'
+                        }
+                    },
+                    {
+                        type: 'textarea',
+                        name: 'Bio',
+                        value: userObj[userId].bio,
+                        attributes: {
+                            class: 'form-control mb-2 h-100 overflow-y-scroll text-wrap',
+                            id: 'edit-profile-bio-field'
+                        }
+                    },
+                    {
+                        type: 'input',
+                        name: 'Profile Picture',
+                        attributes: {
+                            type: 'file',
+                            class: 'form-control mb-2 h-100',
+                            id: 'edit-profile-profile-picture-input'
+                        }
+                    }
+                ]
+
+
+
+                let editProfileForm = createForm(editProfileFormFormat);
+
+                let resetPictureButton = document.createElement('button');
+                resetPictureButton.setAttribute('class','btn btn-primary mb-3 d-block');
+                resetPictureButton.textContent = 'Reset Picture';
+
+                let editProfileFileInput = editProfileForm.children[7];
+
+                editProfileFileInput.addEventListener('change', (e) => {
+                    try {
+                        fileToDataUrl(editProfileFileInput.files[0]).then((base64String) => {
+                            profileImageDiv.style.backgroundImage = `url(${base64String})`;
+                        }).catch(e => {
+                            throw Error(e);
+                        })
+                    } catch (e) {
+                        showMessageModal('Error',e);
+                        editProfileFileInput.value = '';
+                    }
+                })
+
+                resetPictureButton.addEventListener('click',(e) => {
+                    e.preventDefault();
+                    editProfileFileInput.value = '';
+                    profileImageDiv.style.backgroundImage = initialUserImage;
+                })
+                
+
+                editProfileForm.appendChild(resetPictureButton)
+
+                let passwordLabel = document.createElement('label');
+                passwordLabel.setAttribute('for','edit-profile-new-password');
+                passwordLabel.setAttribute('class','form-label fs-6');
+                passwordLabel.textContent = 'New Password';
+
+
+                let passwordFieldDiv = document.createElement('div');
+                passwordFieldDiv.setAttribute('class','input-group mb-2')
+                let passwordInput = document.createElement('input');
+                passwordInput.setAttribute('type','password');
+                passwordInput.setAttribute('class','form-control');
+                passwordInput.setAttribute('placeholder','*********');
+                passwordInput.setAttribute('id','edit-profile-new-password');
+                passwordInput.setAttribute('autocomplete','new-password');
+                let showPasswordButton = document.createElement('button');
+                let showPasswordButtonIcon = document.createElement('i');
+                showPasswordButtonIcon.setAttribute('class','bi bi-eye-fill')
+                showPasswordButton.setAttribute('class','btn btn-outline-secondary p-2 fs-4');
+                showPasswordButton.appendChild(showPasswordButtonIcon);
+                showPasswordButton.setAttribute('aria-label','Show or Hide New Password Button');
+                showPasswordButton.addEventListener('click',(e) => {
+                    e.preventDefault();
+                    if(passwordInput.getAttribute('type') === 'password'){
+                        passwordInput.setAttribute('type', 'text');
+                        showPasswordButtonIcon.classList.remove('bi-eye-fill');
+                        showPasswordButtonIcon.classList.add('bi-eye-slash');
+                        passwordInput.setAttribute('placeholder','');
+                    } else {
+                        passwordInput.setAttribute('type', 'password');
+                        showPasswordButtonIcon.classList.remove('bi-eye-slash');
+                        showPasswordButtonIcon.classList.add('bi-eye-fill');
+                        passwordInput.setAttribute('placeholder','*********');
+                    }
+                })
+
+
+                passwordFieldDiv.appendChild(passwordInput);
+                passwordFieldDiv.appendChild(showPasswordButton);
+                editProfileForm.appendChild(passwordLabel);
+                editProfileForm.appendChild(passwordFieldDiv);
+                profileBaseDiv.appendChild(editProfileForm);
+
+                let editProfileEditButton = document.createElement('button');
+                editProfileEditButton.setAttribute('class','btn btn-light border border-dark');
+                editProfileEditButton.textContent = 'Edit Profile';
+
+                editProfileEditButton.addEventListener('click', (e) => {
+                    let editedName = document.getElementById('edit-profile-name-field').value;
+                    let editedEmail = document.getElementById('edit-profile-email-field').value;
+                    let editedBio = document.getElementById('edit-profile-bio-field').value;
+                    if(!checkEmail(editedEmail)){
+                        showMessageModal('Error', 'Invalid Email Format');
+                    } else {
+                        let editedPassword = passwordInput.value;
+                        let editProfileBody = {
+                            ...((editedName.trim().length > 0 && editedName.trim() !== userObj[userId].name ) && {name:editedName}),
+                            ...((editedEmail.trim().length > 0 && editedEmail.trim() !== userObj[userId].email ) && {email:editedEmail}),
+                            ...((editedBio.trim().length > 0 && editedBio.trim() !== userObj[userId].bio ) && {bio:editedBio}),
+                            ...((editedPassword.trim().length > 0) && {password:editedPassword})
+                        }
+                        console.log(userObj[userId].email)
+                        fileToDataUrl(editProfileFileInput.files[0]?editProfileFileInput.files[0]:null).then((base64String) => {
+                            if(base64String !== null){
+                                editProfileBody['image'] = base64String;
+                            }
+                            console.log(editProfileBody);
+                            apiCall('user','PUT',editProfileBody).then((r) => {
+                                loadProfilePicture();
+                                profileModal.hide();
+                            }).catch((e) => {})
+                        }).catch(e => {
+                            reject(e);
+                        })
+                    }
+                })
+
+                profileModalFooter.prepend(editProfileEditButton);
+            } else {
+                profileModalHeader.children[0].textContent = `${userObj[userId].name} Profile`;
+                let profileElementsToCreate = [
+                    {
+                        fieldName: 'Name:',
+                        value: userObj[userId].name,
+                        id: 'view-profile-name'
+                    },
+                    {
+                        fieldName: 'Email:',
+                        value: userObj[userId].email,
+                        id: 'view-profile-email'
+                    },
+                    {
+                        fieldName: 'Bio:',
+                        value: userObj[userId].bio,
+                        id: 'view-profile-bio'
+                    }
+                ]
+                profileElementsToCreate.forEach((e) => {
+                    let textLabel = document.createElement('label');
+                    console.log(e.id);
+                    textLabel.setAttribute('for',e.id);
+                    textLabel.setAttribute('class','form-label fs-6');
+                    textLabel.textContent = e.fieldName;
+                    let textParagraphElement = document.createElement('p');
+                    textParagraphElement.setAttribute('id',e.id);
+                    textParagraphElement.setAttribute('class','fs-4 text-wrap mb-2')
+                    textParagraphElement.textContent = e.value;
+                    profileBaseDiv.appendChild(textLabel);
+                    profileBaseDiv.appendChild(textParagraphElement);
+                })     
+            }
+            profileModalBody.appendChild(profileBaseDiv);
+            resolve(profileModal);
+        })
+    })
+  
+    
+}
+
+
+
+profileButton.addEventListener('click', (e) => {
+    let profileMenuSectionModalBase = createBasicModalStructure('modal-lg',false,false,false);
+    let profileMenuSectionModal = new bootstrap.Modal(profileMenuSectionModalBase);
+    let editProfileButton = document.createElement('button');
+    let profileMenuUserImage = document.createElement('div');
+    profileMenuUserImage.setAttribute('class','rounded-circle profile-menu-image border border-dark-subtle background-image-cover align-self-center')
+    editProfileButton.textContent = 'Edit Profile'
+    profileMenuUserImage.style.backgroundImage = window.getComputedStyle(profileButton).backgroundImage;
+
+    let profileMenuSectionDiv = document.createElement('div');
+    profileMenuSectionDiv.setAttribute('class','w-100 pt-1 d-flex flex-column gap-2')
+    editProfileButton.setAttribute('class','btn btn-light border border-dark')
+
+
+    editProfileButton.addEventListener('click', (e) => {
+        let currentUserId = localStorage.getItem('userId');
+        profileSectionGenerator(currentUserId,true).then((profileModal) => {
+            profileMenuSectionModal.hide();
+            profileModal.show();
+        });
+        
+    })
+
+
+    let logOutButton = document.createElement('button');
+    logOutButton.setAttribute('class','btn btn-light border border-dark')
+    logOutButton.textContent = 'Logout'
+
+    logOutButton.addEventListener('click', (e) => {
+        localStorage.removeItem('userId');
+        localStorage.removeItem('token');
+        movePage('main-page','login-page');
+        profileMenuSectionModal.hide();
+    })
+
+    profileMenuSectionDiv.appendChild(profileMenuUserImage);
+    profileMenuSectionDiv.appendChild(editProfileButton);
+    profileMenuSectionDiv.appendChild(logOutButton);
+
+    profileMenuSectionModalBase.children[0].children[0].children[0].appendChild(profileMenuSectionDiv);
+
+    profileMenuSectionModal.show();
+})
+
 
 
 //Channel List Section
@@ -264,20 +537,18 @@ const createChannelListDiv = (channelArray) => {
         aObj.textContent = `#${channel.name}`;
         aObj.setAttribute('aria-label',`${channel.name} Page`)
         aObj.setAttribute('tabindex','0');
-        aObj.setAttribute('id',`${channel.id}`);
-        aObj.setAttribute('data-user-in-channel',userInChannel?'true':'false');
         liObj.style.listStyle = 'none';
         liObj.appendChild(aObj);
         ulListObject.appendChild(liObj);
         liObj.addEventListener('click', (e) => {
-            getChannelData(aObj);
+            getChannelData(channel.id);
         })
     })
     return ulListObject;
 
 }
 
-const getAllChannels = () => {
+const getAllChannels = (populateNotificationChannelList = false) => {
     return new Promise( (resolve,reject) => {
         let userId = Number(localStorage.getItem('userId'));
         let publicChannelDiv = document.getElementById('channel-list-public');
@@ -299,8 +570,7 @@ const getAllChannels = () => {
 
 const refreshChannelList = (channelId,modalObject=null) => {
     getAllChannels().then((r) => {
-        let channelObject = document.getElementById(`${channelId}`);
-        getChannelData(channelObject);
+        getChannelData(channelId);
         if(modalObject !== null){
             modalObject.hide();
         }
@@ -309,11 +579,11 @@ const refreshChannelList = (channelId,modalObject=null) => {
 
 //Channel Message Section
 
-const getCreateOrEditMessageRequest = (fileInput,textArea, previousTextValue = null) => {
+const getCreateOrEditMessageRequest = (fileInputElement,textArea, previousTextValue = null) => {
     return new Promise( (resolve,reject) => {
         let messageBody = {}
-        if (fileInput.files[0]) {
-            fileToDataUrl(fileInput.files[0]).then((base64String) => {
+        if (fileInputElement.files[0]) {
+            fileToDataUrl(fileInputElement.files[0]).then((base64String) => {
                 messageBody = {
                     image:base64String
                 }
@@ -350,7 +620,7 @@ const sendMessageFunction = () => {
                     id: message.id,
                     senderId: message.sender,
                     sender: members[message.sender].name,
-                    userimage: members[message.sender].image,
+                    userImage: members[message.sender].image,
                     messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
                     message: message.message,
                     image: message.image?message.image:null,
@@ -473,6 +743,7 @@ const removeInfiniteScroll = () => {
 export const getChannelMessages = (channelId, beforeScroll = true) => {
     return new Promise( (resolve,reject) => {
         let memberDetails = mainPageStateObject.userList;
+        console.log(memberDetails);
         console.log(`Index before call is ${mainPageStateObject.currentIndex}`);
         let getMessageApi = apiCall(`message/${channelId}`,'GET',null,`start=${mainPageStateObject.currentIndex}`);
         getMessageApi.then((response) => {
@@ -484,7 +755,7 @@ export const getChannelMessages = (channelId, beforeScroll = true) => {
                         id: message.id,
                         senderId: message.sender,
                         sender: memberDetails[message.sender].name,
-                        userimage: memberDetails[message.sender].image,
+                        userImage: memberDetails[message.sender].image,
                         messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
                         message: message.message,
                         image: message.image?message.image:null,
@@ -556,11 +827,9 @@ const generateBodySection = (textMessage, image = null) => {
 
 
 const openImageModal = (messageId) => {
-    let imageModalBase = createBasicModalStructure();
+    let imageModalBase = createBasicModalStructure('modal-xl',false);
     let imageModal = new bootstrap.Modal(imageModalBase);
-    imageModalBase.children[0].classList.add('modal-xl');
     imageModalBase.children[0].classList.add('p-2');
-    imageModalBase.children[0].children[0].children[2].remove();
     let imageModalHeader = imageModalBase.children[0].children[0].children[0];
 
     let imageModalDiv = document.createElement('div');
@@ -647,14 +916,17 @@ const createMessage = (messageObj,disableButtons = false) => {
     messagePictureSection.setAttribute('class','message-user-picture-section');
 
     let userProfilePictureDiv = document.createElement('div');
-    userProfilePictureDiv.setAttribute('class','message-user-picture w-80 background-image-cover rounded-circle m-1 border border-dark');
+    userProfilePictureDiv.setAttribute('class','default-profile-image w-80 background-image-cover rounded-circle m-1 border border-dark');
     messagePictureSection.appendChild(userProfilePictureDiv);
+    if(messageObj.userImage) {
+        userProfilePictureDiv.style.backgroundImage = `url(${messageObj.userImage})`;
+    }
 
     let messageContentSectionDiv = document.createElement('div');
     messageContentSectionDiv.setAttribute('class','message-content-section d-flex flex-column');
     
     let messageHeaderSection = document.createElement('div');
-    messageHeaderSection.setAttribute('class','pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle text-wrap');
+    messageHeaderSection.setAttribute('class',`${disableButtons?'':'pointer '}pb-2 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle text-wrap`);
     messageContentSectionDiv.appendChild(messageHeaderSection);
 
 
@@ -662,8 +934,16 @@ const createMessage = (messageObj,disableButtons = false) => {
     messageSenderName.setAttribute('class','me-4 mb-0 fs-6');
     messageSenderName.textContent = messageObj.sender;
 
+    let openUserProfile = () => {
+        profileSectionGenerator(userId.toString()).then((profileModal) => {
+            profileModal.show();
+        });
+    }
+  
+    messageHeaderSection.addEventListener('click',openUserProfile);
+
     let messageSendTime = document.createElement('p');
-    messageSenderName.setAttribute('class','mb-0 fs-6 text-secondary');
+    messageSendTime.setAttribute('class','mb-0 fs-6 text-secondary');
     messageSendTime.textContent = messageObj.messageTime;
 
     let messageContentSection = document.createElement('div');
@@ -763,7 +1043,7 @@ const createMessage = (messageObj,disableButtons = false) => {
                 })
             } catch (e) {
                 showMessageModal('Error',e);
-                fileInput.value = '';
+                editMessageImageInput.value = '';
             }
         })
 
@@ -871,6 +1151,7 @@ const createMessage = (messageObj,disableButtons = false) => {
         if(disableButtons) {
             editButton.setAttribute('disabled','');
             deleteButton.setAttribute('disabled','');
+            messageSenderName.removeEventListener('click',openUserProfile);
         }
 
         deleteButton.appendChild(deleteButtonIcon);
@@ -1119,7 +1400,7 @@ const getChannelDetails = (channelId, channelName) => {
                                 id: message.id,
                                 senderId: message.sender,
                                 sender: members[message.sender].name,
-                                userimage: members[message.sender].image,
+                                userImage: members[message.sender].image,
                                 messageTime: `${convertDateToDDMMYY(message.sentAt)} ${getDateHHMM(message.sentAt)}`,
                                 message: message.message,
                                 image: message.image?message.image:null,
@@ -1146,20 +1427,27 @@ const getChannelDetails = (channelId, channelName) => {
                 let inviteToChannelModalHeader = inviteToChannelModalBase.children[0].children[0].children[0];
                 let inviteToChannelModalBody = inviteToChannelModalBase.children[0].children[0].children[1];
                 let inviteToChannelModalFooter = inviteToChannelModalBase.children[0].children[0].children[2];
-                inviteToChannelModalHeader.children[0].textContent = 'Invite User to Channel';
+                inviteToChannelModalHeader.children[0].textContent = 'Invite Users to Channel';
 
+                let selectAllButton = document.createElement('button');
+                selectAllButton.setAttribute('class','btn btn-light border-dark me-1 mb-1');
+                selectAllButton.textContent = 'Select All';
+
+                let deselectAllButton = document.createElement('button');
+                deselectAllButton.setAttribute('class','btn btn-secondary border-dark mb-1');
+                deselectAllButton.textContent = 'Deselect All';
                 let inviteModalInviteButton = document.createElement('button');
                 inviteModalInviteButton.setAttribute('class','btn btn-primary');
-                inviteModalInviteButton.textContent = "Invite Users";
+                inviteModalInviteButton.textContent = "Invite";
                 inviteToChannelModalFooter.prepend(inviteModalInviteButton);
 
                 inviteToChannelButton.addEventListener('click',(e) => {
+                    inviteToChannelModalBody.replaceChildren(selectAllButton,deselectAllButton);
                     let allUsersList = apiCall('user','GET');
                     allUsersList.then((response) => {
                         let currentMemberInChannel = Object.keys(members);
                         let usersNotInChannel = response.users.filter((user) => !currentMemberInChannel.includes(user.id.toString()));
                         usersNotInChannel = usersNotInChannel.map((userObj) => userObj.id);
-                        console.log(usersNotInChannel);
                         let getUserDetailsApi = getObjectOfUserDetails(usersNotInChannel);
                         getUserDetailsApi.then((userObjects) => {
                             let sortedArray = []
@@ -1171,9 +1459,9 @@ const getChannelDetails = (channelId, channelName) => {
                                 sortedArray.push(userObject);
                             }
                             sortedArray.sort((a,b) => {
-                                if (a.name < b.name) {
+                                if (a.name.toLowerCase() < b.name.toLowerCase()) {
                                     return -1;
-                                } else if (a.name == b.name) {
+                                } else if (a.name.toLowerCase() === b.name.toLowerCase()) {
                                     return 0;
                                 } else {
                                     return 1;
@@ -1186,10 +1474,36 @@ const getChannelDetails = (channelId, channelName) => {
                                 inviteToChannelModalBody.appendChild(checkbox);
                             });
                             inviteToChannelModalBody.lastChild.classList.remove('border-bottom','border-dark');
+
+                            let checkBoxButtons = inviteToChannelModalBody.querySelectorAll('input');
+                            selectAllButton.addEventListener('click', (e) => {
+                                checkBoxButtons.forEach((button) => {
+                                    button.checked = true;
+                                })
+                            })
+                            deselectAllButton.addEventListener('click', (e) => {
+                                checkBoxButtons.forEach((button) => {
+                                    button.checked = false;
+                                })
+                            })
+
                             inviteToChannelModal.show();
+
                             inviteModalInviteButton.addEventListener('click', (e) => {
                                 let checkedButtons = inviteToChannelModalBody.querySelectorAll('input:checked');
-                                console.log(checkedButtons);
+                                let userIdsToInvite = [];
+                                checkedButtons.forEach((checkBoxDom) => {
+                                    userIdsToInvite.push(checkBoxDom.value);
+                                })
+                                if(userIdsToInvite.length < 1){
+                                    showMessageModal('Error','You need to select atleast 1 user to invite');
+                                } else {
+                                    console.log(userIdsToInvite);
+                                    inviteMultipleUsers(userIdsToInvite,channelId).then((r) => {
+                                        inviteToChannelModal.hide();
+                                        getChannelDetails(channelId,channelName);
+                                    }).catch((e) => {});
+                                }
                             })
 
                         })
@@ -1208,12 +1522,36 @@ const getChannelDetails = (channelId, channelName) => {
                 let ulObject = document.createElement('ul');
                 ulObject.style.listStylePosition = 'inside';
                 ulObject.setAttribute('class','mb-4 mb-md-2 p-0');
-            
-                for (let member in members){
+                let sortedMembers = []
+                for (let userId in members){
+                    let userObject = {
+                        id:userId,
+                        ...members[userId]
+                    }
+                    sortedMembers.push(userObject);
+                }
+                console.log(sortedMembers);
+
+
+                sortedMembers.sort((a,b) => {
+                    if (a.name.toLowerCase() < b.name.toLowerCase()) {
+                        return -1;
+                    } else if (a.name.toLowerCase() === b.name.toLowerCase()) {
+                        return 0;
+                    } else {
+                        return 1;
+                    }
+                
+                });
+
+                console.log(sortedMembers);
+
+                for (let member of sortedMembers){
+                    // console.log(member);
                     let liObj = document.createElement('li');
                     liObj.setAttribute('class','px-1 py-1 text-nowrap');
                     let aObj = document.createElement('a');
-                    aObj.textContent = members[member].name;
+                    aObj.textContent = member.name;
                     liObj.appendChild(aObj);
                     ulObject.appendChild(liObj);
                 }
@@ -1332,7 +1670,7 @@ createChannelButton.addEventListener('click', (e) => {
         }
         let createChannelRequest = apiCall('channel','POST',request);
         createChannelRequest.then( (response) => {
-            refreshChannelList(`${response.channelId}`,myModal)
+            refreshChannelList(response.channelId,myModal)
         }).catch((e) => {});
     })
     modalFooter.prepend(createButton);
@@ -1342,6 +1680,30 @@ createChannelButton.addEventListener('click', (e) => {
 
 
 
+window.addEventListener("hashchange",() => {
+    let mainPage = document.getElementById('main-page');
+    if(!mainPage.classList.contains('d-none')){
+        let urlFragment = location.hash.split('=');
+        if (urlFragment[0] === '#channel'){
+            console.log(urlFragment[0]);
+            console.log(urlFragment[1]);
+            getChannelData(urlFragment[1]);
+        } else if (urlFragment[0] === '#profile') {
+            let userId = ''
+            if(urlFragment.length > 1) {
+                userId = urlFragment[1]
+            } else {
+                userId = localStorage.getItem('userId');
+
+            }
+            profileSectionGenerator(userId).then((profileModal) => {
+                profileModal.show();
+            })
+        }
+    }
+
+});
+
 
 document.getElementById('notification-button').addEventListener('click', (e) => {
     // createMessage();
@@ -1349,5 +1711,7 @@ document.getElementById('notification-button').addEventListener('click', (e) => 
     // console.log(`Element Offset height is ${messageWindow.offsetHeight}`);
     // console.log(`Element Scroll Top is ${messageWindow.scrollTop}`);
     // console.log(`Element height + scroll is ${messageWindow.offsetHeight + messageWindow.scrollTop}`);
+    console.log(profileButton.style.backgroundImage);
 
 })
+

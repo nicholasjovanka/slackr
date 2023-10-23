@@ -45,7 +45,7 @@ main {
     background-image: url('../assets/notification.svg');
 }
 
-#profile-button{
+.default-profile-image{
     background-image: url('../assets/user.svg');
 }
 
@@ -94,6 +94,16 @@ main {
 
 .pointer{
     cursor: pointer
+}
+
+#channel-messages {
+    height: 86%;
+    width: 100%;
+}
+
+#channel-input-div {
+    height: 14%;
+    background-color: aquamarine;
 }
 
 /* Height and Width Class that Bootstrap doesnt provide */

@@ -17,20 +17,26 @@
 import { BACKEND_PORT } from "./config.js";
 
 export function fileToDataUrl(file) {
-    const validFileTypes = [ 'image/jpeg', 'image/png', 'image/jpg' ]
-    const valid = validFileTypes.find(type => type === file.type);
-    // Bad data, let's walk away.
-    if (!valid) {
-        throw Error('provided file is not a png, jpg or jpeg image.');
+    if(file === null){
+        return new Promise((resolve,reject) => {
+            resolve(null);
+        })
+    } else {
+        const validFileTypes = [ 'image/jpeg', 'image/png', 'image/jpg' ]
+        const valid = validFileTypes.find(type => type === file.type);
+        // Bad data, let's walk away.
+        if (!valid) {
+            throw Error('provided file is not a png, jpg or jpeg image.');
+        }
+        
+        const reader = new FileReader();
+        const dataUrlPromise = new Promise((resolve,reject) => {
+            reader.onerror = reject;
+            reader.onload = () => resolve(reader.result);
+        });
+        reader.readAsDataURL(file);
+        return dataUrlPromise;
     }
-    
-    const reader = new FileReader();
-    const dataUrlPromise = new Promise((resolve,reject) => {
-        reader.onerror = reject;
-        reader.onload = () => resolve(reader.result);
-    });
-    reader.readAsDataURL(file);
-    return dataUrlPromise;
 }
 
 export const convertDateToDDMMYY = (dateStr) => {
@@ -163,28 +169,33 @@ export const getAllChannelMessages = (channelId, messages = [], startIndex = 0) 
     })
 }
 
-export const getSpecificMessage = (channelId,messageId,startIndex = 0) => {
-    return apiCall(`message/${channelId}`,'GET',null,`start=${startIndex}`).then
-    ( (response) => {
-        let specifiedMessageObj = response.messages.find((message) => message.id === messageId);
-        if (specifiedMessageObj !== undefined) {
-            return specifiedMessageObj;
-        }
-        if(response.messages.length == 0){
-            startIndex = -1;
+export const getSpecificChannelname = (channelId) => {
+    return apiCall('channel','GET').then((response) => {
+        let specifiedChannel = response.channels.filter((channel) => channel.id === channelId);
+        let channelName = specifiedChannel.length>0? specifiedChannel[0].name:"";
+        return(channelName);
+    })
+}
+
+
+export const inviteMultipleUsers = (userIdList,channelId,currentIndex = 0) => {
+    let apiRequestObject = {
+        userId: userIdList[currentIndex]
+    }
+    console.log(apiRequestObject.userId);
+    return apiCall(`channel/${channelId}/invite`,'POST',apiRequestObject).then((response) => {
+        currentIndex+=1
+        if(currentIndex < userIdList.length){
+            return inviteMultipleUsers(userIdList,channelId,currentIndex);
         } else {
-            startIndex = startIndex + response.messages.length;
-        }
-        if(startIndex !== -1){
-            return getAllChannelMessages(channelId,messages,startIndex);
-        } else {
-            return null;
+            return '';
         }
     })
 }
 
 
-export const createBasicModalStructure = () => {
+
+export const createBasicModalStructure = (modalSize=null,hasFooter = true ,hasHeader = true, scrollable = true) => {
     //Create the Modal Header
     let modalHeader = document.createElement('div');
     modalHeader.setAttribute('class','modal-header');
@@ -216,13 +227,24 @@ export const createBasicModalStructure = () => {
 
     let modalContent = document.createElement('div');
     modalContent.setAttribute('class','modal-content')
-    modalContent.appendChild(modalHeader);
+    if (hasHeader){
+        modalContent.appendChild(modalHeader);
+    } else {
+        modalHeaderCloseButton.classList.add('float-end')
+        modalBody.appendChild(modalHeaderCloseButton);
+    }
     modalContent.appendChild(modalBody);
-    modalContent.appendChild(modalFooter);
+    if(hasFooter){
+        modalContent.appendChild(modalFooter);
+    }
     
     let modalDialog = document.createElement('div');
-    modalDialog.setAttribute('class','modal-dialog modal-dialog-centered modal-dialog-scrollable');
+    modalDialog.setAttribute('class',`modal-dialog modal-dialog-centered${scrollable?' modal-dialog-scrollable':''}`);
     modalDialog.appendChild(modalContent);
+    if(modalSize !== null){
+        let modalBody
+        modalDialog.classList.add(modalSize);
+    }
     
 
     let modalDiv = document.createElement('div');
@@ -243,6 +265,7 @@ export const showMessageModal = (title,message) => {
     let modalBasic = createBasicModalStructure();
     modalBasic.setAttribute('data-bs-backdrop','static');
     modalBasic.setAttribute('data-bs-keyboard','false');
+    modalBasic.children[0].children[0].classList.add('border','border-dark');
     let modalHeader = modalBasic.children[0].children[0].children[0];
     let modalBody = modalBasic.children[0].children[0].children[1];
     modalHeader.children[0].textContent = title;
