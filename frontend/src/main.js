@@ -1,4 +1,4 @@
-// A helper you may want to use when uploading new images to the server.
+// Helper Functions
 import { 
     fileToDataUrl, 
     showMessageModal,
@@ -13,17 +13,21 @@ import {
     getObjectOfUserDetails,
     channelDetailsSectionGenerator,
     getAllChannelMessages,
-    getSpecificChannelname,
+    getSpecificChannelName,
+    getChannelLatestMessages,
     createConfirmationModal,
     inviteMultipleUsers
 } from './helpers.js';
 
 
 /*
+-------------------------
 Login Page Code
+------------------------
 */
-let loginPageRegisterButton = document.getElementById('login-page-register-button');
-loginPageRegisterButton.addEventListener('click', (e) => {
+
+let loginPageRegisterButton = document.getElementById('login-page-register-button'); 
+loginPageRegisterButton.addEventListener('click', (e) => { //Add an Event Listener to navigate the user to the register page if they click the Login page Register button
     movePage('login-page', 'register-page');
 })
 
@@ -32,18 +36,20 @@ let loginPageNameInput = document.getElementById('login-email-input');
 let loginPagePasswordInput = document.getElementById('login-password-input');
 
 
-loginPageLoginButton.addEventListener('click',(e) => {
+loginPageLoginButton.addEventListener('click',(e) => { // Add an Event Listener to the login button in the login page, to login the user to the main page
     e.preventDefault();
-    loginPageLoginButton.disabled = true;
-    let body = {
+    loginPageLoginButton.disabled = true; 
+    let body = { //Request object containing the users email and password that is inputted to each of its input field in the login page
         email: loginPageNameInput.value,
         password: loginPagePasswordInput.value
     }
-    let loginAPI = apiCall('auth/login','POST',body);
-    loginAPI.then( (response) => {
+    let loginAPI = apiCall('auth/login','POST',body); //Call the login API
+    loginAPI.then( (response) => { //If the Login is successful, then save the token and userId in the localstorage and navigate them into the main page.
         localStorage.setItem('token',`Bearer ${response.token}`);
         localStorage.setItem('userId',response.userId)
         movePage('login-page','main-page');
+        getAllChannels(true).catch((e) => {}); //Function that populates the channel List and initialize the notification system
+        loadProfilePicture(); //Function that loads the user profile picture
     }).catch((e) => {})
     .finally( () => {
         loginPageLoginButton.disabled = false;
@@ -51,16 +57,16 @@ loginPageLoginButton.addEventListener('click',(e) => {
 })
 
 
-
-
 /*
+-------------------------
 Register Page Code
+------------------------
 */
 let registerPageNameInput = document.getElementById('register-name-input');
 
-const validateRegisterPageNameInput = () => {
+const validateRegisterPageNameInput = () => { //Function used to validate the Register Page Name Input to make sure its not empty
     let registerNameWarningDiv = document.getElementById('register-name-invalid-message');
-    return !emptyInputValidator(registerPageNameInput,registerNameWarningDiv,"Name");
+    return !emptyInputValidator(registerPageNameInput,registerNameWarningDiv,'Name');
 }
 
 registerPageNameInput.addEventListener('blur', (e) => {
@@ -68,16 +74,17 @@ registerPageNameInput.addEventListener('blur', (e) => {
 })
 
 
+
 let registerPageEmailInput = document.getElementById('register-email-input');
 
-const validateRegisterPageEmailInput = () => {
+const validateRegisterPageEmailInput = () => { //Function used to validate the Register Page Email Input to make sure its not empty and to ensure its a valid email
     let valid = true;
     let registerEmailWarningDiv = document.getElementById('register-email-invalid-message');
-    let isEmpty = emptyInputValidator(registerPageEmailInput,registerEmailWarningDiv,"Email");
+    let isEmpty = emptyInputValidator(registerPageEmailInput,registerEmailWarningDiv,'Email');
     if(!isEmpty) {
         let emailIsValid = checkEmail(registerPageEmailInput.value);
         if (!emailIsValid) {
-            registerEmailWarningDiv.textContent = "Wrong Email Format";
+            registerEmailWarningDiv.textContent = 'Wrong Email Format';
             valid = false;
         }
         formInputElementValidator(registerPageEmailInput, emailIsValid);
@@ -91,18 +98,24 @@ registerPageEmailInput.addEventListener('blur', (e) => {
     validateRegisterPageEmailInput();
 })
 
+
 let registerPagePasswordInput = document.getElementById('register-password-input');
 let registerPageConfirmPasswordInput = document.getElementById('register-confirm-password-input');
 
-const validateRegisterPagePasswordInput = () => {
+
+/*
+Function used to validate the Register Page Password and Confirm Password Input to make sure its not empty 
+and to ensure both password is the same
+*/
+const validateRegisterPagePasswordInput = () => { 
     let registerPasswordWarningDiv = document.getElementById('register-password-invalid-message');
     let errorMessage = '';
     let valid = true;
-    if(registerPagePasswordInput.value.length === 0 || registerPageConfirmPasswordInput.value.length === 0){
+    if(registerPagePasswordInput.value.length === 0 || registerPageConfirmPasswordInput.value.length === 0){ //Checks if either the password field is empty
         errorMessage = `${registerPagePasswordInput.value.length === 0?'Password':'Confirm Password'} field cannot be empty`
         valid = false;
     } else {
-        if(registerPagePasswordInput.value === registerPageConfirmPasswordInput.value) {
+        if(registerPagePasswordInput.value === registerPageConfirmPasswordInput.value) { //Checks if both password field has the same value
             valid = true;
         } else {
             valid = false;
@@ -126,16 +139,24 @@ registerPageConfirmPasswordInput.addEventListener('blur', (e) => {
 })
 
 
-let registerPageLoginHyperLink = document.getElementById('register-page-a-element');
+//Hyperlink Element that on click navigates the user back to the login page from the register page
+let registerPageLoginHyperLink = document.getElementById('register-page-a-element'); 
 
 registerPageLoginHyperLink.addEventListener('click', (e) => {
     e.preventDefault();
     movePage('register-page','login-page');
 })
 
+
 let registerPageButton = document.getElementById('register-page-submit-button');
 
-registerPageButton.addEventListener('click', (e) => {
+
+/*
+Bind the register button in the register page to a function that submits a register request to the backend server
+using the input fields from the register page.
+The function also checks for invalid fields and will return an error if the password and confirm password fields is not the same
+*/
+registerPageButton.addEventListener('click', (e) => { 
     try{
         e.preventDefault();
         registerPageButton.disabled = true;
@@ -155,10 +176,12 @@ registerPageButton.addEventListener('click', (e) => {
             password: registerPagePasswordInput.value
         }
         let registerApi = apiCall('auth/register','POST',body);
-        registerApi.then( (response) => {
+        registerApi.then( (response) => { //Upon a succesfull register request to the backend, move the user to the main page and save the userId and token to the localStorage
             localStorage.setItem('token',`Bearer ${response.token}`);
-            localStorage.setItem('userId',response.token)
+            localStorage.setItem('userId',response.userId)
             movePage('register-page','main-page');
+            getAllChannels(true).catch((e) => {});  //Function that populates the channel List and initialize the notification system
+            loadProfilePicture(); //Function that loads the user profile picture
         }).catch( (e) => {
             registerPageButton.disabled = false;
         })
@@ -171,66 +194,135 @@ registerPageButton.addEventListener('click', (e) => {
 
 
 /*
+-------------------------
 Main Page Code
+------------------------
 */
-let openButton = document.getElementById('open-button');
-let channelBar = document.getElementById('channel-list-sidebar');
 
-let profileButton = document.getElementById('profile-button');
-let notificationButton = document.getElementById('profile-button');
+//General Element Getters
 
-let messageWindow = document.getElementById('channel-messages');
-let chatTextAreaDiv = document.getElementById('text-area-div');
-let chatTextArea = document.getElementById('chat-input');
+let openButton = document.getElementById('open-button'); //Button that only shows on screen below 700px width that allows the user to open and hide the channel list 
 
+/*
+The sidebar or in this case the portion of the user screen (The left side of the user screen) that contains the 
+users list of channels (public channel and private channel that they have joined)
+*/
+let channelBar = document.getElementById('channel-list-sidebar'); 
 
-let fileInputLable = document.getElementById('file-input-label');
-let fileInput = document.getElementById('file-input');
-let fileDisplayerDiv = document.getElementById('file-displayer-div');
-let fileInputCancelButton = document.getElementById('cancel-file-upload-button');
-let sendMessageButton = document.getElementById('send-message-button');
+let profileButton = document.getElementById('profile-button'); //The Profile button on the top right side of the user screen that allows them to open the edit profile menu and logout 
 
 
+let messageWindow = document.getElementById('channel-messages'); //The div containing the messages in a server, or in other words the message window where the user can see the messages
 
-//General Main Functions
+/*
+The div or the right section of the user screen in the main page that contains the details of a channel along with
+buttons that allow them to invite people, see pinned message and much more
+*/
+let channelPageDiv = document.getElementById('channel-page-section'); 
+
+let chatTextAreaDiv = document.getElementById('text-area-div'); //Div containing the text area where the user can input the message they want to send
+let chatTextArea = document.getElementById('chat-input'); //Text area where the user can type the message they want to send to a channel
+
+/*
+//Label that overlays the file input used to send a file as a message to a channel so that I can use icons as the file input instead of the default html file input
+*/
+let fileInputLable = document.getElementById('file-input-label'); 
+let fileInput = document.getElementById('file-input'); //File input used to send a file as a message to a channel
+let fileDisplayerDiv = document.getElementById('file-displayer-div'); //A div used to preview the image that the user is about to send to a channel
+let fileInputCancelButton = document.getElementById('cancel-file-upload-button'); //A button used to cancel the file that user have selected in the fileInput
+let sendMessageButton = document.getElementById('send-message-button'); //A button used by the user to send a text message or an image to a channel
+
+
+openButton.addEventListener('click',(e) => {  //Click Event listener on the openButton that provides the slide in and slide out animation for the channelBar
+    let isOpen = channelBar.classList.contains('slide-in');
+    if(isOpen){
+        channelBar.classList.remove('slide-in');
+        channelBar.classList.add('slide-out');
+        openButton.textContent = ' > ';
+    } else {
+        channelBar.classList.remove('slide-out');
+        channelBar.classList.add('slide-in');
+        openButton.textContent = ' < ';
+    }
+})
+
+
+//Click eventlistener on the fileInputLable to simulate a click on the fileInput so that the fileInputLable can be used like a button
+fileInputLable.addEventListener('keypress',(e) => { 
+    if(e.key === 'Enter' && !fileInput.hasAttribute('disabled')) {
+        fileInput.click();
+    }
+})
+
+
+//Event listener on the fileInputCancelButton that on click will reset the fileInput value and close the image preview
+fileInputCancelButton.addEventListener('click',(e) => {
+    fileDisplayerDiv.classList.add('d-none');
+    fileInput.value = '';
+    chatTextArea.removeAttribute('disabled');
+});
+
+
+/*
+Event listener on the fileInput where on file change it will validate if the file is png/jpeg/jpg and display it in the image preview.
+Other than that if its a valid file then disable the text area as the user can only either send an image or a text message.
+*/
+fileInput.addEventListener('change', (e) => {
+    try {
+        if(!chatTextArea.hasAttribute('disabled')){
+            chatTextArea.setAttribute('disabled','')
+        }
+        fileToDataUrl(fileInput.files[0]).then((base64String) => {
+            fileDisplayerDiv.children[1].replaceChildren();
+            fileDisplayerDiv.classList.remove('d-none');
+            let image = document.createElement('img');
+            image.setAttribute('src',base64String);
+            fileDisplayerDiv.children[1].appendChild(image);
+        }).catch(e => {
+            throw Error(e);
+        })
+    } catch (e) {
+        showMessageModal('Error',e);
+        fileInput.value = '';
+    }
+})
+
+
+//General Main Page Function and Object
 
 let mainPageStateObject = { // State Object which is used to help us keep track of the infinity scroll, other than that also helps to pass around the channelId 
-    currentIndex: 0,
-    channelId: 0,
-    userInChannel: false,
-    endOfPage: false,
-    userList:[]
+    currentIndex: 0, //Index of current infinity scroll, correspond to the starm url parameter used in the getMessages api
+    channelId: 0, //Current visited channel channel id
+    userInChannel: false, 
+    usersObject:{} //Object containing the details of members from a specific channel so that we dont have to call the api everytime for each different function that uses the userObjects
 }
 
 
-let loadProfilePicture = () => {
+
+let loadProfilePicture = () => { // Function used to get the current logged in user profile image so that we can load it in the profile button 
     let userId = localStorage.getItem('userId');
     getObjectOfUserDetails([userId]).then((userObj) => {
-        let profilePicture = `url(${userObj[userId].image?userObj[userId].image:'../assets/user.svg'})`;
-        profileButton.style.backgroundImage = profilePicture;
+        let profilePicture = `url(${userObj[userId].image?userObj[userId].image:'../assets/user.svg'})`; //If the user dont have an image then use the default profile iamge
+        profileButton.style.backgroundImage = profilePicture; //Set the image as the profile button background image
     })
 }
 
-const getChannelData = (channelId) => { //Function that will trigger when a user visits a channel, sets up the channel messages, infinite scroll, and also the channel details
-    // let channelName = channelListObject.textContent.slice(1);
+const getChannelData = (channelId) => { //Function that will trigger when a user visits a channel, sets up the channel messages, infinite scroll, and also get the channel details
     let channelInputDiv = document.getElementById('channel-input-div');
-    getSpecificChannelname(channelId).then((channelName) => {
-        getChannelDetails(channelId,channelName).then(([userList,userInChannel]) => {
-            mainPageStateObject = {
-                currentIndex:0,
+    getSpecificChannelName(channelId).then((channelName) => {
+        getChannelDetails(channelId,channelName).then(([usersObject,userInChannel]) => {
+            mainPageStateObject = { //Reset the state object 
+                currentIndex:0, //Reset the index to 0 so that the application will fetch the latest messages from the channel visited
                 channelId,
                 userInChannel,
-                endOfPage: false,
-                userList
+                usersObject
             }
-            removeInfiniteScroll();
-            sendMessageButton.removeEventListener('click',sendMessageFunction);
+            removeInfiniteScroll(); //Remove previous existing infinity scroll if there is one
+            sendMessageButton.removeEventListener('click',sendMessageFunction); // Remove existing Event listener from the send message button
             messageWindow.replaceChildren();
             chatTextArea.value = '';
-            console.log(`user in channel is ${userInChannel}`);
-            console.log(mainPageStateObject.currentIndex);
-            if(userInChannel){
-                let loadingSpinnerDiv = document.createElement('div');
+            if(userInChannel){ //If the user is in the channel, then populate the messages and details
+                let loadingSpinnerDiv = document.createElement('div'); //Spinner used for the infinity scroll
                 loadingSpinnerDiv.setAttribute('class','d-none d-flex justify-content-center');
                 loadingSpinnerDiv.setAttribute('id','chatbox-spinner');
                 loadingSpinnerDiv.setAttribute('role','status');
@@ -238,20 +330,20 @@ const getChannelData = (channelId) => { //Function that will trigger when a user
                 loadingSpinner.setAttribute('class','spinner-border');
                 loadingSpinnerDiv.appendChild(loadingSpinner);
                 messageWindow.appendChild(loadingSpinnerDiv);
-                getChannelMessages(channelId,false).then((r) => {
-                    if(mainPageStateObject.currentIndex !== -1){
-                        messageWindow.addEventListener("scroll", handleInfiniteScroll);
-                        messageWindow.scrollTop = messageWindow.scrollHeight;
+                getChannelMessages(channelId,false).then((r) => { //Get the latest 25 messages from the channel and put them in the channelWindow element
+                    if(mainPageStateObject.currentIndex !== -1){  //If the state object current index is not -1 it means that there is messages in the channel, so add infinity scroll
+                        messageWindow.addEventListener('scroll', handleInfiniteScroll);
+                        messageWindow.scrollTop = messageWindow.scrollHeight; //if scrollable, scroll the user cursor in the messageWindow to the very bottom to see the latest message
                     }
-                    if(chatTextArea.hasAttribute('disabled')){
+                    if(chatTextArea.hasAttribute('disabled')){ //Enable the chat text area and the file input if it was disabled before.
                         chatTextArea.removeAttribute('disabled');
                         fileInput.removeAttribute('disabled');
                         fileInputLable.classList.remove('disabled');
                         sendMessageButton.removeAttribute('disabled');
                     }
-                    sendMessageButton.addEventListener('click',sendMessageFunction);
+                    sendMessageButton.addEventListener('click',sendMessageFunction); //Register the send message function to the send message button
                 });
-            } else {
+            } else { //If user is not in channel then disable the text area and file input.
                 if(!chatTextArea.hasAttribute('disabled')){
                     chatTextArea.setAttribute('disabled','');
                     fileInput.setAttribute('disabled','');
@@ -263,8 +355,249 @@ const getChannelData = (channelId) => { //Function that will trigger when a user
     })
 }
 
+
+// Notification System
+
+/*
+Button shown in the top right of the user screen with the icon of a bell that on click shows the notification modal to the user
+*/
+let notificationButton = document.getElementById('notification-button'); 
+let notificationClearbutton = document.getElementById('clear-notification-button'); //The button in the notification modal to clear all notifications
+
+/*
+Span element located on the bottom right of the notification Button that represents the number of new notification for the user
+*/
+let notificationNumber = document.getElementById('notification-number'); 
+let notificationModalBase = document.getElementById('notification-modal'); //Modal base for the notification modal
+let notificationMenu = document.getElementById('notification-menu'); //Div inside the notification modal body that contains the notifications.
+let notificationModal =new bootstrap.Modal(notificationModalBase); //Bootstrap modal object for the notification modal
+
+/*
+//Variable used to store the reference for the setInterval function containing getNotificationCounterFunction that updates the notification counter so that we
+can use clear interval on it later to remove it incase the user logouts
+*/
+let notificationCounterIntervalFunctionReference; 
+
+/*
+Variable used by the getNotificationCounterFunction to get the number of new messages from each of the user joined channel channelNotificationFunction that runs at a set interval
+*/
+let amountOfNewMessages = 0; 
+
+/*
+Object used to store the references of the setInterval functions that executes the channelNotificationFunction() function for each of the user joined Channel so that
+we can use clearInterval on it later incase the user logs out or leave a channel. The key in the object is the channelId
+*/
+let notificationObjectIntervalTracker = {} 
+
+/*
+Object used to track the last id of the message received from each of the user joined channel at each updated notification to know the amount of new message after 
+the last message. The key in the object is the channelId
+*/
+let notificationObjectStateTracker = {}
+
+/*
+Object that maps the channelName to the channelIds of the channel that the user joined which is used to get the channel name when creating the notification late,r
+The key in the object is the channelId
+*/
+let notificationObjectChannelName = {}
+
+
+const createNotification = (channelId) => { //Function to create the notification element inside the notification modal/notification menu
+    let notificationFlexDiv = document.createElement('div');
+    notificationFlexDiv.setAttribute('class','d-flex border border-dark ps-3 pt-3 pb-3 pe-0');
+    notificationFlexDiv.setAttribute('data-channel',channelId);
+    let notificationBody = document.createElement('div');
+    notificationBody.setAttribute('class','toast-body');
+    notificationBody.textContent = `New Message in ${notificationObjectChannelName[channelId]}`;
+    let notificationCloseButton = document.createElement('button');
+    notificationCloseButton.setAttribute('class','btn-close me-2 m-auto');
+    notificationCloseButton.setAttribute('type','button');
+    notificationCloseButton.setAttribute('aria-label','Close');
+    notificationCloseButton.addEventListener('click',(e) => {
+        notificationFlexDiv.remove();
+    })
+    notificationFlexDiv.appendChild(notificationBody);
+    notificationFlexDiv.appendChild(notificationCloseButton);
+    return notificationFlexDiv;
+}
+
+
+
+/*
+Function that will update the notification number/counter below the notification button at a set interval which shows the user that there
+is new messages from each of their joined channel
+*/
+const getNotificationCounterFunction = () => { 
+    let serverError = amountOfNewMessages === null; //If the amount of new messages is null, then we know that there was a connection error (the backend server died or disconnected)
+    if(serverError){ 
+        /*
+        If there is a connection error then remove the setInterval containing the getNotificationCounterFunction using 
+        the notificationCounterIntervalFunctionReference reference variable  
+        */
+        clearInterval(notificationCounterIntervalFunctionReference);
+    } else { //If there is no server error, then update the counter number in the span.
+        let amountOfNotification = notificationNumber.textContent === ''?0:Number(notificationNumber.textContent);
+        amountOfNotification+= amountOfNewMessages;
+        amountOfNewMessages = 0;
+        if(amountOfNotification > 0){
+            notificationNumber.textContent = amountOfNotification.toString();
+        }
+    }
+    
+}
+
+
+/*
+Function that will be to used to poll new messages from each of the user joined channel, and check if there is new messages in
+the channel that does not come from the user
+*/
+const channelNotificationFunction = (channelId) => {
+        let userId = Number(localStorage.getItem('userId')); //Get the current user id
+        getChannelLatestMessages(channelId).then((messages) => { //Get the latest channel messages
+            let previousMessageId = notificationObjectStateTracker[channelId]; //Using the state tracker object, we get the latest message id from when the last time this function is called
+            let messagesToTraverseStartIndex = 0; //Start index variable which is used to tell the function where to iterate from in the new messages array
+            if(messages.length > 0){ //If the messages is not empty then proceed
+                if (notificationObjectStateTracker[channelId] === null) { //Check if the State Object for the current channel is null, as if its null then the channel previously has no messages
+                    messagesToTraverseStartIndex = messages.length - 1; //Set the start index to be the last message in the latest messages
+                } else { 
+                    //If the previous state object is not null then get the index of the previous latest message id in the array and minus it by 1 and set it as the start index 
+                    let previousMessageIndex = messages.map(e => e.id).indexOf(previousMessageId); 
+                    messagesToTraverseStartIndex = previousMessageIndex - 1;
+                }
+                /*
+                Update the state object for the current channel to be the latest message (in this case the first item since the api fetch in a reverse manner where the latest message is the first item)
+                for the next time this function is called again in the next interval
+                */
+                notificationObjectStateTracker[channelId] = messages[0].id; 
+                for(let i = messagesToTraverseStartIndex ; i >= 0 ; i--){ //Loop through all the messages that appears after the previous message
+                    /*
+                    //If there is a new message where the sender is not the current user then update the amountOfNewMessages variable so later it
+                    will be displayed by the getNotificationCounterFunction once that function runs again on the next interval.
+                    Then also create the notification object and add it to the notification modal.
+                    */
+                    if(messages[i].sender !== userId ) { 
+                        amountOfNewMessages+=1;
+                        let newNotification = createNotification(channelId);
+                        notificationMenu.prepend(newNotification);
+                    }
+                }
+            }
+        }).catch((e) => {
+            if(e === 'Server Error') { 
+                /*
+                If the error is a server error where the backend server disconnect then call clearinterval on this function using the 
+                reference that we store in the notificationObjectIntervalTracker. Other than that, update the amountOfNewMessages variable to null
+                so that the getNotificationCounterFunction knows that there is an server error at the next interval that it runs.
+                */
+                if (channelId in notificationObjectIntervalTracker) {
+                    clearInterval(notificationObjectIntervalTracker[channelId]);
+                    delete notificationObjectIntervalTracker[channelId];
+                    amountOfNewMessages = null;
+                }
+            }
+        })
+}
+
+/*
+Function used to create a new setInterval function of the channelNotificationFunction for each of the public and private channels passed in the function parameter
+so that the application starts poling these channels for new messages in order to get notifications for the current user.
+Additionaly, if initializeMode in the parameter is not false, then it tells the function to also initialize the getNotificationCounterFunction so that the interval
+that updates the notification number in the UI also starts.
+*/
+const addChannelsToNotification = (publicChannels, privateChannels,initializeMode = false) => {
+    return new Promise((resolve,reject) => {
+        publicChannels.forEach((publicChannel) => { //Iterate through all the channels object in the public channels array
+            getChannelLatestMessages(publicChannel.id).then((messages) => {
+                if(messages.length > 0 ) { //Get the channel latest message id and store it in the state object, if there is no message then set it as null
+                    notificationObjectStateTracker[`${publicChannel.id}`] = messages[0].id;
+                } else {
+                    notificationObjectStateTracker[`${publicChannel.id}`] = null;
+                }
+                notificationObjectChannelName[`${publicChannel.id}`] = publicChannel.name; //Store the channel name using the notificationObjectChannelName object
+                //Initialize the set interval function that calls the channelNotificationFunction for this channel and store the set interval reference in the notificationObjectIntervalTracker
+                notificationObjectIntervalTracker[`${publicChannel.id}`] = setInterval(() => {channelNotificationFunction(`${publicChannel.id}`)},1500); 
+            })
+        })
+
+        privateChannels.forEach((privateChannel) => {
+            getChannelLatestMessages(privateChannel.id).then((messages) => {
+                if(messages.length > 0 ) {  //Get the channel latest message id and store it in the state object, if there is no message then set it as null
+                    notificationObjectStateTracker[`${privateChannel.id}`] = messages[0].id;
+                } else {
+                    notificationObjectStateTracker[`${privateChannel.id}`] = null;
+                }
+            })
+            notificationObjectChannelName[`${privateChannel.id}`] = privateChannel.name;//Store the channel name using the notificationObjectChannelName object
+                            //Initialize the set interval function that calls the channelNotificationFunction for this channel and store the set interval reference in the notificationObjectIntervalTracker
+            notificationObjectIntervalTracker[`${privateChannel.id}`] = setInterval(() => {channelNotificationFunction(`${privateChannel.id}`)},1500);
+        })
+        if(initializeMode){
+            notificationCounterIntervalFunctionReference = setInterval(() => getNotificationCounterFunction(), 3000);
+        }
+    })
+}
+
+
+//Function that is used to register a new channel to the notification system incase the user joined a new channel
+const addJoinedChannelToNotification = (channelId) => {
+    apiCall(`channel/${channelId}`,'GET',null,null,false).then((response) => {
+        let channelObject = {id:channelId, ...response}
+        addChannelsToNotification([channelObject],[]);
+    })
+}
+
+//Function that is used to remove a channel from notification system incase the user left a channel
+const removeChannelFromNotification = (channelId) => {
+    clearInterval(notificationObjectIntervalTracker[channelId]);
+    delete notificationObjectIntervalTracker[channelId];
+    delete notificationObjectChannelName[channelId];
+    delete notificationObjectStateTracker[channelId];
+    //Gets all existing notification object related to the channel that the user just left in the notification modal and remove it
+    let existingNotifications = notificationMenu.querySelectorAll(`[data-channel='${channelId}']`); 
+    existingNotifications.forEach((e) => {
+        e.remove();
+    })
+    if(existingNotifications.length > 0){ //Update the notification number shown by the span in the UI.
+        let amountOfNotification = Number(notificationNumber.textContent);
+        amountOfNotification -= existingNotifications.length;
+        if(amountOfNotification === 0) {
+            notificationNumber.textContent = '';
+        }
+
+    }
+}
+
+//Function that is used to updates the channel name in existing notifications incase a channel name is updated
+const updateChannelNameInNotification = (channelId, newChannelName) => {
+    let existingNotifications = notificationMenu.querySelectorAll(`[data-channel='${channelId}']`);
+    notificationObjectChannelName[channelId] = newChannelName; 
+    existingNotifications.forEach((e) => {
+        e.children[0].textContent = `New Message in ${notificationObjectChannelName[channelId]}`;
+    })
+}
+
+
+notificationButton.addEventListener('click', (e) => {
+    notificationModal.show();
+})
+
+notificationClearbutton.addEventListener('click', (e) => {
+    notificationMenu.replaceChildren();
+})
+
+notificationModalBase.addEventListener('hide.bs.modal', (e) => { //Event listener to reset the notification counter when the notification modal is closed
+    amountOfNewMessages = 0;
+    notificationNumber.textContent = '';
+})
+
 //Navbar Section
 
+/*
+Function that is used to generate the view profile and edit profile modal.
+the edittable parameter tells the function which component to generate where if
+the edittable is false then it will only generate the view profile modal, otherwise
+it generates the edit profile modal
+*/
 const profileSectionGenerator = (userId,edittable = false) => {
     return new Promise((resolve,reject) => {
         let profileModalBase = createBasicModalStructure();
@@ -276,11 +609,11 @@ const profileSectionGenerator = (userId,edittable = false) => {
         profileBaseDiv.setAttribute('class','w-100 pt-1 d-flex flex-column gap-2');
         let profileImageDiv = document.createElement('div');
         profileImageDiv.setAttribute('class','rounded-circle profile-menu-image border border-dark-subtle background-image-cover align-self-center')
-        getObjectOfUserDetails([userId]).then((userObj) => {
+        getObjectOfUserDetails([userId]).then((userObj) => { //Get the User details of the user specified in the userId function parameter
             let initialUserImage = `url(${userObj[userId].image?userObj[userId].image:'../assets/user.svg'})`;
             profileImageDiv.style.backgroundImage = initialUserImage;
             profileBaseDiv.appendChild(profileImageDiv);
-            if(edittable){
+            if(edittable){ //If edittable is true then generate an edit profile modal
                 profileModalHeader.children[0].textContent = 'Edit Profile';
                 let editProfileFormFormat = [
                     {
@@ -417,12 +750,10 @@ const profileSectionGenerator = (userId,edittable = false) => {
                             ...((editedBio.trim().length > 0 && editedBio.trim() !== userObj[userId].bio ) && {bio:editedBio}),
                             ...((editedPassword.trim().length > 0) && {password:editedPassword})
                         }
-                        console.log(userObj[userId].email)
                         fileToDataUrl(editProfileFileInput.files[0]?editProfileFileInput.files[0]:null).then((base64String) => {
                             if(base64String !== null){
                                 editProfileBody['image'] = base64String;
                             }
-                            console.log(editProfileBody);
                             apiCall('user','PUT',editProfileBody).then((r) => {
                                 loadProfilePicture();
                                 profileModal.hide();
@@ -434,7 +765,7 @@ const profileSectionGenerator = (userId,edittable = false) => {
                 })
 
                 profileModalFooter.prepend(editProfileEditButton);
-            } else {
+            } else { //If edittable is false then generate an view profile modal
                 profileModalHeader.children[0].textContent = `${userObj[userId].name} Profile`;
                 let profileElementsToCreate = [
                     {
@@ -455,7 +786,6 @@ const profileSectionGenerator = (userId,edittable = false) => {
                 ]
                 profileElementsToCreate.forEach((e) => {
                     let textLabel = document.createElement('label');
-                    console.log(e.id);
                     textLabel.setAttribute('for',e.id);
                     textLabel.setAttribute('class','form-label fs-6');
                     textLabel.textContent = e.fieldName;
@@ -468,7 +798,7 @@ const profileSectionGenerator = (userId,edittable = false) => {
                 })     
             }
             profileModalBody.appendChild(profileBaseDiv);
-            resolve(profileModal);
+            resolve(profileModal); //Return the modal
         })
     })
   
@@ -477,6 +807,11 @@ const profileSectionGenerator = (userId,edittable = false) => {
 
 
 
+/*
+bind a function to the profile button so that on click it will show the 
+user a modal that contains the edit profile and logout button . This modal will also
+show the current user image.
+*/
 profileButton.addEventListener('click', (e) => {
     let profileMenuSectionModalBase = createBasicModalStructure('modal-lg',false,false,false);
     let profileMenuSectionModal = new bootstrap.Modal(profileMenuSectionModalBase);
@@ -490,14 +825,13 @@ profileButton.addEventListener('click', (e) => {
     profileMenuSectionDiv.setAttribute('class','w-100 pt-1 d-flex flex-column gap-2')
     editProfileButton.setAttribute('class','btn btn-light border border-dark')
 
-
-    editProfileButton.addEventListener('click', (e) => {
+    //Bind the editProfileButton inside the profileMenuSection Modal to show an edit profile modal to allow the current user to edit their profile
+    editProfileButton.addEventListener('click', (e) => { 
         let currentUserId = localStorage.getItem('userId');
         profileSectionGenerator(currentUserId,true).then((profileModal) => {
             profileMenuSectionModal.hide();
             profileModal.show();
         });
-        
     })
 
 
@@ -505,9 +839,24 @@ profileButton.addEventListener('click', (e) => {
     logOutButton.setAttribute('class','btn btn-light border border-dark')
     logOutButton.textContent = 'Logout'
 
+    
+    //Bind the Logout button to logout the user once the button is clicked
     logOutButton.addEventListener('click', (e) => {
-        localStorage.removeItem('userId');
-        localStorage.removeItem('token');
+        for(let channelId in notificationObjectIntervalTracker){ //Clear all the channelNotificationFunction setInterval functions and clear the notification objects
+            clearInterval(notificationObjectIntervalTracker[channelId]);
+            delete notificationObjectIntervalTracker[channelId];
+            delete notificationObjectChannelName[channelId];
+            delete notificationObjectStateTracker[channelId];
+        }
+        clearInterval(notificationCounterIntervalFunctionReference); //Clear the getNotificationCounterFunction setInterval function
+        notificationMenu.replaceChildren(); //Clear the notification menu in the notification modal
+        amountOfNewMessages = 0; // Reset the amount of messages
+        notificationNumber.textContent = ''; //reset the notification number
+        removeInfiniteScroll(); // Remove the infinite scroll
+        messageWindow.replaceChildren(); // Clear the message Window
+        channelPageDiv.replaceChildren(); // Clear the Channel details in the channelPageDiv
+        localStorage.removeItem('userId'); //Clear the stored userId from the local storage
+        localStorage.removeItem('token'); //Clear the stored token from the local storage
         movePage('main-page','login-page');
         profileMenuSectionModal.hide();
     })
@@ -524,11 +873,13 @@ profileButton.addEventListener('click', (e) => {
 
 
 //Channel List Section
+
+//Function to create the private channel list and public channel list <ul> elements that will be displayed in the channel list sidebar
 const createChannelListDiv = (channelArray) => {
     let ulListObject = document.createElement('ul');
     ulListObject.setAttribute('class', 'px-1 w-100 h-100');
     let userId = localStorage.getItem('userId');
-    channelArray.forEach( (channel) => {
+    channelArray.forEach( (channel) => { //Loop through the channels and create the <li> elements for each channel
         let userInChannel = channel.members.includes(Number(userId));
         let liObj = document.createElement('li');
         let aObj = document.createElement('a');
@@ -540,7 +891,11 @@ const createChannelListDiv = (channelArray) => {
         liObj.style.listStyle = 'none';
         liObj.appendChild(aObj);
         ulListObject.appendChild(liObj);
-        liObj.addEventListener('click', (e) => {
+        /*
+        Bind a click event to each <li> object to update the screen with content based on the channel that the liObj using the
+        getChannelData function
+        */
+        liObj.addEventListener('click', (e) => { 
             getChannelData(channel.id);
         })
     })
@@ -548,6 +903,11 @@ const createChannelListDiv = (channelArray) => {
 
 }
 
+/*
+Function that is used to populate the channel list sidebar.
+Additionaly, the populateNotificationChannelList is used to tell the function if it should also initialize
+the notification system
+*/
 const getAllChannels = (populateNotificationChannelList = false) => {
     return new Promise( (resolve,reject) => {
         let userId = Number(localStorage.getItem('userId'));
@@ -556,11 +916,15 @@ const getAllChannels = (populateNotificationChannelList = false) => {
         publicChannelDiv.replaceChildren();
         privateChannelDiv.replaceChildren();
         let channelResponse = apiCall('channel','GET');
-        channelResponse.then( (response) => {
-            let publicChannels = response.channels.filter((obj) => obj.private === false);
-            let privateChannels = response.channels.filter((obj) => obj.private === true && obj.members.includes(userId));
+        channelResponse.then( (response) => { //Get the list of all channels
+            let publicChannels = response.channels.filter((obj) => obj.private === false); //Filter public channels
+            let privateChannels = response.channels.filter((obj) => obj.private === true && obj.members.includes(userId)); //Filter private channels where the current user is amember
             let publicChannelUl = createChannelListDiv(publicChannels);
             let privateChannelUl = createChannelListDiv(privateChannels);
+            if(populateNotificationChannelList) {
+                //Add all private and public channels that the current user is a member of to the notification system 
+                addChannelsToNotification(publicChannels.filter((obj) => obj.members.includes(userId)),privateChannels,true); 
+            }
             publicChannelDiv.appendChild(publicChannelUl);
             privateChannelDiv.appendChild(privateChannelUl);
             resolve('');
@@ -568,6 +932,10 @@ const getAllChannels = (populateNotificationChannelList = false) => {
     })
 }
 
+/*
+Function that is used to refresh a channel screen, used for when the user edits a channel detail, join a channel, or leave a channel.
+Additionaly, this function will also hide the modal that is passed through the function parameter.
+*/
 const refreshChannelList = (channelId,modalObject=null) => {
     getAllChannels().then((r) => {
         getChannelData(channelId);
@@ -577,12 +945,18 @@ const refreshChannelList = (channelId,modalObject=null) => {
     })
 }
 
+
 //Channel Message Section
 
+/*
+Function that is used to form the request object of either then sendMessage Api and the edit message api.
+The previousTextValue is a parameter that tells the function if there is a previous value for the message text area which is used for the edit message api
+as the user is not allowed to send the same value when editting a message
+*/
 const getCreateOrEditMessageRequest = (fileInputElement,textArea, previousTextValue = null) => {
     return new Promise( (resolve,reject) => {
         let messageBody = {}
-        if (fileInputElement.files[0]) {
+        if (fileInputElement.files[0]) { //check if file input has a file where if it has a file then get the base64 string.
             fileToDataUrl(fileInputElement.files[0]).then((base64String) => {
                 messageBody = {
                     image:base64String
@@ -591,11 +965,11 @@ const getCreateOrEditMessageRequest = (fileInputElement,textArea, previousTextVa
             }).catch(e => {
                 reject(e);
             })
-        } else {
-            if(textArea.value.trim().length < 1){
+        } else { //If there is no file, then we can deduct that the message is a text based message so get the value from the text area
+            if(textArea.value.trim().length < 1){ //Check if the message is an empty string
                 reject('Message cannot be empty');
             }
-            if(previousTextValue !== null){
+            if(previousTextValue !== null){ //If a previousTextValue is provided then ensure that the new value is not the same with the previous value.
                 if(textArea.value.trim() === previousTextValue){
                     reject('Cannot send the same exact message')
                 }
@@ -608,13 +982,20 @@ const getCreateOrEditMessageRequest = (fileInputElement,textArea, previousTextVa
     })
 }
 
+
+//Function that allows a user to send a message to a specific channel that they have joined
 const sendMessageFunction = () => {
     getCreateOrEditMessageRequest(fileInput,chatTextArea).then( (messageBody) => {
         let sendMessageApi = apiCall(`message/${mainPageStateObject.channelId}`,'POST',messageBody).then((r) => {
-            let members = mainPageStateObject.userList;
+            let members = mainPageStateObject.usersObject;
             mainPageStateObject.currentIndex+=1;
             let getLatestMessageInServer = apiCall(`message/${mainPageStateObject.channelId}`,'GET',null,`start=0`);
-            getLatestMessageInServer.then((response) => {
+            /*
+            //Once the message is succesfuly sent to the backend, fetch the latest message from channel in order to get the new message
+            current id as the backend id system is not linear (nextMessageId in the backend is shared between the multiple channels) which is
+            why we gotta fetch the latest message to ensure that the new message id is accurate
+            */
+            getLatestMessageInServer.then((response) => { 
                 let message = response.messages[0];
                 let messageObject = {
                     id: message.id,
@@ -629,9 +1010,9 @@ const sendMessageFunction = () => {
                     pinned: message.pinned,
                     reacts: message.reacts,
                 }
-                let chatBoxDiv = createMessage(messageObject);
-                messageWindow.appendChild(chatBoxDiv);
-                messageWindow.scrollTop = messageWindow.scrollHeight;
+                let chatBoxDiv = createMessage(messageObject); //Create the message element based on the message object we get from the response 
+                messageWindow.appendChild(chatBoxDiv);// Add the new message element to the messageWindow.
+                messageWindow.scrollTop = messageWindow.scrollHeight; //Move the user scroll in the messageWindow to the latest message.
                 messageObject.currentIndex+=1;
                 if(!fileDisplayerDiv.classList.contains('d-none')){
                     fileDisplayerDiv.classList.add('d-none');
@@ -641,92 +1022,36 @@ const sendMessageFunction = () => {
                 }
                 fileInput.value = '';
                 chatTextArea.value = '';
-
             }).catch ((e) => {});
         }).catch((e) => {});
     }).catch((e) => showMessageModal('Error', e))
 }
 
-openButton.addEventListener('click',(e) => {
-    let isOpen = channelBar.classList.contains('slide-in');
-    if(isOpen){
-        channelBar.classList.remove('slide-in');
-        channelBar.classList.add('slide-out');
-        openButton.textContent = " > ";
-    } else {
-        channelBar.classList.remove('slide-out');
-        channelBar.classList.add('slide-in');
-        openButton.textContent = " < ";
-    }
-})
-
-
-
-
-fileInputLable.addEventListener('keypress',(e) => {
-    if(e.key === "Enter" && !fileInput.hasAttribute('disabled')) {
-        fileInput.click();
-    }
-})
-
-fileInputCancelButton.addEventListener('click',(e) => {
-    fileDisplayerDiv.classList.add('d-none');
-    fileInput.value = '';
-    chatTextArea.removeAttribute('disabled');
-});
-
-
-fileInput.addEventListener('change', (e) => {
-    try {
-        if(!chatTextArea.hasAttribute('disabled')){
-            chatTextArea.setAttribute('disabled','')
-        }
-        fileToDataUrl(fileInput.files[0]).then((base64String) => {
-            fileDisplayerDiv.children[1].replaceChildren();
-            fileDisplayerDiv.classList.remove('d-none');
-            let image = document.createElement('img');
-            image.setAttribute('src',base64String);
-            fileDisplayerDiv.children[1].appendChild(image);
-        }).catch(e => {
-            throw Error(e);
-        })
-    } catch (e) {
-        showMessageModal('Error',e);
-        fileInput.value = '';
-    }
-})
-
-
-localStorage.setItem('token', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5OTQ0NiIsImlhdCI6MTY5NzM1NDg3NX0.ujbOdP_Zdc3AF-u3mQo0CH7hKIx_-cYXcADdSeF0C5A')
-localStorage.setItem('userId', '99446');
-// localStorage.setItem('token', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNTI3MiIsImlhdCI6MTY5Nzc5NTUyOX0.kIvq16DBbFCbUcVO9a7aWMRDoqnPra2qjOlEaQ1sl6g')
-// localStorage.setItem('userId', '15272');
-
-
 //Infinity Scroll Section
-var throttleTimer = false;
+
+let throttleTimer = false; //Timer variable that allows the application to throttle how frequent the user can scroll up/use the infinity scroll
 
 const handleInfiniteScroll = () => { //Infinite Scroll , Inspired from: https://webdesign.tutsplus.com/how-to-implement-infinite-scrolling-with-javascript--cms-37055t
     let spinner = document.getElementById('chatbox-spinner');
-    let startOfPage = messageWindow.scrollTop === 0;
-    let userList = mainPageStateObject.userList;
-    if (!throttleTimer && startOfPage) {
-        let previousScrollHeight = messageWindow.scrollHeight;
-        throttleTimer = true;
-        spinner.classList.remove('d-none');
+    let startOfPage = messageWindow.scrollTop === 0; //Check if user scroll position in the message window is at the very top
+    if (!throttleTimer && startOfPage) { //If the user scroll position in the message window is at the very top and the scroll is currently not throttled then do the infinity scroll
+        let previousScrollHeight = messageWindow.scrollHeight; //Store the previous scroll height before the messages element is added to know where to move the user cursor once the message is loaded
+        throttleTimer = true; //Set the throttle timer to true to ensure that the user cannot use the infinity scroll for a while
+        spinner.classList.remove('d-none'); //Display the spinner
         spinner.classList.add('d-flex');
-        setTimeout( () => {
-            if (startOfPage) {
-                getChannelMessages(mainPageStateObject.channelId).then((response) => {
-                    if (mainPageStateObject.currentIndex === -1) {
+        setTimeout( () => { //use set timeout to allow the spinner to show for a while during the infinite scroll as the api returns its response too quickly
+            if (startOfPage) { //Ensure that after 1 second the user scroll position is still on top.
+                getChannelMessages(mainPageStateObject.channelId).then((response) => { //Get the channel messages and load them into the message window.
+                    if (mainPageStateObject.currentIndex === -1) { //If the current index is -1 after we fetched the messages then we know there is no more messages so remove the infinite scroll
                         removeInfiniteScroll();
                         showMessageModal('Notice','No More Message to Be Loaded');
                     }
-                    messageWindow.scrollTop = messageWindow.scrollHeight - previousScrollHeight - 100;
+                    messageWindow.scrollTop = messageWindow.scrollHeight - previousScrollHeight - 100; //Move the user scroll position in the message window to the last viewed message before the infinity scroll
                 }).catch(() => {
                     removeInfiniteScroll();
                 }).finally(() =>{
-                    spinner.classList.remove('d-flex');
+                    //hide the spinner again and allow the user to use the infinite scroll again
+                    spinner.classList.remove('d-flex'); 
                     spinner.classList.add('d-none');
                     throttleTimer = false;
                 } )
@@ -735,21 +1060,28 @@ const handleInfiniteScroll = () => { //Infinite Scroll , Inspired from: https://
     }
   };
   
+// Function that removes the infinite scroll
 const removeInfiniteScroll = () => {
-    messageWindow.removeEventListener("scroll", handleInfiniteScroll);
+    messageWindow.removeEventListener('scroll', handleInfiniteScroll);
 };
   
-
-export const getChannelMessages = (channelId, beforeScroll = true) => {
+/*
+Function that gets messages based on the index in the mainPageStateObject and load them into
+the message window. The before scroll basiclly just tells the function whether these elements is added before the spinner element exist or after it already exist
+as the most recent 25 messages will always be loaded before the spinner exist while the older messages will be added after the spinner already exist in the message window. 
+*/
+export const getChannelMessages = (channelId, beforeSpinner = true) => {
     return new Promise( (resolve,reject) => {
-        let memberDetails = mainPageStateObject.userList;
-        console.log(memberDetails);
-        console.log(`Index before call is ${mainPageStateObject.currentIndex}`);
-        let getMessageApi = apiCall(`message/${channelId}`,'GET',null,`start=${mainPageStateObject.currentIndex}`);
+        let memberDetails = mainPageStateObject.usersObject;
+        let getMessageApi = apiCall(`message/${channelId}`,'GET',null,`start=${mainPageStateObject.currentIndex}`); //Get the messages of a channel from the start index pointed by the mainPageStateObject.currentIndex
         getMessageApi.then((response) => {
-            if(response.messages.length > 0) {
-                mainPageStateObject.currentIndex += response.messages.length;
-                let messagesList = beforeScroll?response.messages:response.messages.reverse();
+            if(response.messages.length > 0) { //Check if there is any messages
+                /*
+                // Update the index in the mainPageStateObject so that next time this function is called in the infinite scroll it will know which 
+                index to get the messages from
+                */
+                mainPageStateObject.currentIndex += response.messages.length; 
+                let messagesList = beforeSpinner?response.messages:response.messages.reverse();
                 messagesList.forEach((message) => {
                     let messageObject = {
                         id: message.id,
@@ -765,13 +1097,14 @@ export const getChannelMessages = (channelId, beforeScroll = true) => {
                         reacts: message.reacts,
                     }
                     let chatBoxDiv = createMessage(messageObject);
-                    if(beforeScroll){
+                    if(beforeSpinner){
                         messageWindow.insertBefore(chatBoxDiv,messageWindow.children[1]);
                     } else {
                         messageWindow.appendChild(chatBoxDiv);
                     }
                 })
-            } else {
+            } else { 
+                //If there is no more messages that set the mainPageStateObject.currentIndex to -1 so that the application know that there is no more messages for the current channel 
                 mainPageStateObject.currentIndex = -1;
             }
             resolve('');
@@ -779,14 +1112,20 @@ export const getChannelMessages = (channelId, beforeScroll = true) => {
     })
 }
 
+
+//Function that handles the logic that is required when the user reacts to a message
 const emojiHandler = (emojiButton, emojiString, channelId, messageId) => {
-    let reactApiBody = {
+    let reactApiBody = { //The object required by the react api.
         react:emojiString
     }
     let userId = Number(localStorage.getItem('userId'));
-    let currentLength = Number(emojiButton.textContent.split(' ')[1]);
+    let currentLength = Number(emojiButton.textContent.split(' ')[1]); //Get the current number of reactions that is currently being displayed in the message emoji button
 
-    if(emojiButton.classList.contains('btn-light')){
+    /*
+    If the button class is btn-light then the user has not reacted to the message, so send a react request to the backend api 
+    and update its class to btn-primary and update the number of reacts
+    */
+    if(emojiButton.classList.contains('btn-light')){ 
         let reactApiCall = apiCall(`message/react/${channelId}/${messageId}`,'POST',reactApiBody);
         reactApiCall.then((response) => {
             emojiButton.classList.remove('btn-light');
@@ -795,6 +1134,10 @@ const emojiHandler = (emojiButton, emojiString, channelId, messageId) => {
         
         }).catch((e) => {})
     } else {
+        /*
+        If the button class is not btn-light then the user has reacted to the message, 
+        so send an unreact request to the backend api and update its class to btn-light and update the number of reacts
+        */
         let unReactApiCall = apiCall(`message/unreact/${channelId}/${messageId}`,'POST',reactApiBody);
         unReactApiCall.then((response) => {
             emojiButton.classList.remove('btn-primary');
@@ -804,6 +1147,7 @@ const emojiHandler = (emojiButton, emojiString, channelId, messageId) => {
     }
 }
 
+//Function used to generate the editted at text in each messages
 const createEdittedSection = (timeString) => {
     let editedText = document.createElement('p');
     editedText.setAttribute('class','mb-0');
@@ -811,6 +1155,8 @@ const createEdittedSection = (timeString) => {
     return editedText;
 }
 
+
+//Function used to generate the html content that represents a message content which can either be an image or text
 const generateBodySection = (textMessage, image = null) => {
     if(image !== null){
         let imageDiv = document.createElement('div');
@@ -825,7 +1171,7 @@ const generateBodySection = (textMessage, image = null) => {
     }
 }
 
-
+// Function that creates and open an image modal or in a sense an image library where the users can see all the images in the channel
 const openImageModal = (messageId) => {
     let imageModalBase = createBasicModalStructure('modal-xl',false);
     let imageModal = new bootstrap.Modal(imageModalBase);
@@ -846,6 +1192,7 @@ const openImageModal = (messageId) => {
     nextButton.setAttribute('aria-label','Next Image Button');
     previousButton.appendChild(previousIcon);
     nextButton.appendChild(nextIcon);
+    
     let imageModalImageDiv = document.createElement('div');
     imageModalImageDiv.setAttribute('class','w-100 flex-grow-1 w-100 d-flex flex-row justify-content-center');
     imageModalDiv.appendChild(previousButton);
@@ -857,10 +1204,10 @@ const openImageModal = (messageId) => {
     imageModalImageDiv.appendChild(imageModalImage);
     imageModalImage.setAttribute('class','mw-100 mh-100');
     getAllChannelMessages(mainPageStateObject.channelId).then((messages) => {
-        let messageWithImages = messages.filter((message) => message.image).reverse();
+        let messageWithImages = messages.filter((message) => message.image).reverse();  //Get all the channel messages and filter the one that has an image
         let maxImageIndex = messageWithImages.length - 1;
-        let currentImageIndex = messageWithImages.findIndex((message) => message.id == messageId);
-        imageModalHeader.children[0].textContent = `Viewing Image ${currentImageIndex} out of ${maxImageIndex} Images`;
+        let currentImageIndex = messageWithImages.findIndex((message) => message.id == messageId); //Get the index of the image that the user clicked to open the image modal
+        imageModalHeader.children[0].textContent = `Viewing Image ${currentImageIndex+1} out of ${messageWithImages.length} Images`;
         if(currentImageIndex === 0){
             previousButton.setAttribute('disabled','');
         }
@@ -870,14 +1217,14 @@ const openImageModal = (messageId) => {
         imageModalImage.setAttribute('src',messageWithImages[currentImageIndex].image);
 
 
-        let imageModalButtonHandler = (action) => {
+        let imageModalButtonHandler = (action) => { //Function handler that allows the user to view the next or previous image using the next and previous button
             if(action === 'next'){
                 currentImageIndex+=1;
             } else if(action === 'prev') {
                 currentImageIndex-=1;
             }
             imageModalImage.setAttribute('src',messageWithImages[currentImageIndex].image);
-            imageModalHeader.children[0].textContent = `Viewing Image ${currentImageIndex} out of ${maxImageIndex} Images`;
+            imageModalHeader.children[0].textContent = `Viewing Image ${currentImageIndex+1} out of ${messageWithImages.length} Images`;
             if(currentImageIndex === 0){
                 previousButton.setAttribute('disabled','');
             }
@@ -905,6 +1252,11 @@ const openImageModal = (messageId) => {
 }
 
 
+/* 
+Function used to create a message object for the messageWindow
+the disableButtons parameters is used to tell the function if it should create a message element where
+all the buttons is disabled (used for displaying the pinned messages as the user should not be able to interact with the buttons when viewing pinned messages)
+*/
 const createMessage = (messageObj,disableButtons = false) => {
     let channelId = mainPageStateObject.channelId;
     let userId = Number(localStorage.getItem('userId'));
@@ -912,7 +1264,9 @@ const createMessage = (messageObj,disableButtons = false) => {
     chatBoxDiv.setAttribute('class','message-chatbox d-flex flex-row flex-wrap border-top border-bottom border-dark px-2');
     chatBoxDiv.setAttribute('data-id', messageObj.id);
 
-    let messagePictureSection = document.createElement('div');
+
+    //User Message Sender Picture Section
+    let messagePictureSection = document.createElement('div'); 
     messagePictureSection.setAttribute('class','message-user-picture-section');
 
     let userProfilePictureDiv = document.createElement('div');
@@ -922,6 +1276,7 @@ const createMessage = (messageObj,disableButtons = false) => {
         userProfilePictureDiv.style.backgroundImage = `url(${messageObj.userImage})`;
     }
 
+
     let messageContentSectionDiv = document.createElement('div');
     messageContentSectionDiv.setAttribute('class','message-content-section d-flex flex-column');
     
@@ -930,28 +1285,33 @@ const createMessage = (messageObj,disableButtons = false) => {
     messageContentSectionDiv.appendChild(messageHeaderSection);
 
 
+        
+    //User Message Sender Section
     let messageSenderName = document.createElement('p');
     messageSenderName.setAttribute('class','me-4 mb-0 fs-6');
     messageSenderName.textContent = messageObj.sender;
 
     let openUserProfile = () => {
-        profileSectionGenerator(userId.toString()).then((profileModal) => {
+        profileSectionGenerator(messageObj.senderId.toString()).then((profileModal) => {
             profileModal.show();
         });
     }
   
     messageHeaderSection.addEventListener('click',openUserProfile);
 
+    //Message Send Time Section
     let messageSendTime = document.createElement('p');
     messageSendTime.setAttribute('class','mb-0 fs-6 text-secondary');
     messageSendTime.textContent = messageObj.messageTime;
 
+    //Message Content Section
     let messageContentSection = document.createElement('div');
     messageContentSection.setAttribute('class','message-content text-wrap py-1');
     
     let bodyContent = generateBodySection(messageObj.message,messageObj.image?messageObj.image:null);
     messageContentSection.appendChild(bodyContent);
 
+    //If the buttons are not disabled then if the message content is an image then add an event listener so that on click it opens the image modal
     if(messageObj.image && !disableButtons){
         bodyContent.classList.add('pointer');
         bodyContent.addEventListener('click',(e) => {
@@ -964,6 +1324,7 @@ const createMessage = (messageObj,disableButtons = false) => {
     let messageEditedDiv= document.createElement('div');
     messageEditedDiv.setAttribute('class','w-100 text-wrap border-top border-dark-subtle d-flex flex-row d-flex');
 
+    //If the message was editted then display the editted at text in the message element
     if(messageObj.edited){
         let editedText = createEdittedSection(messageObj.editedAt);
         messageEditedDiv.appendChild(editedText);
@@ -972,6 +1333,7 @@ const createMessage = (messageObj,disableButtons = false) => {
     let buttonsDiv = document.createElement('div');
     buttonsDiv.setAttribute('class','w-100 text-wrap py-0 d-flex flex-row d-flex justify-content-between border-bottom border-dark-subtle');
 
+    //Pinn Message Section
     let leftSideButtonDiv = document.createElement('div');
     let pinButton = document.createElement('button');
     pinButton.setAttribute('class',`btn ${messageObj.pinned?'btn-primary':'btn-light'} border border-dark emoji-button p-1`);
@@ -996,10 +1358,11 @@ const createMessage = (messageObj,disableButtons = false) => {
 
     leftSideButtonDiv.appendChild(pinButton);
 
-    if(userId === messageObj.senderId) {
+    //If the user is the sender of the current message object then add a delete message button and edit message button if the message wasnt editted previously
+    if(userId === messageObj.senderId) { 
         let editButton = document.createElement('button');
         editButton.setAttribute('class','btn btn-link mb-0 p-0');
-        editButton.textContent = "Edit";
+        editButton.textContent = 'Edit';
         let previousMessageValue = messageObj.message?messageObj.message:'';
         let editMessageModalBase = createBasicModalStructure();
         let editMessageModal = new bootstrap.Modal(editMessageModalBase);
@@ -1111,7 +1474,7 @@ const createMessage = (messageObj,disableButtons = false) => {
 
         let confirmEditMessageButton = document.createElement('button');
         confirmEditMessageButton.setAttribute('class','btn btn-primary');
-        confirmEditMessageButton.textContent = "Edit";
+        confirmEditMessageButton.textContent = 'Edit';
 
         editMessageModalFooter.prepend(confirmEditMessageButton);
 
@@ -1148,7 +1511,7 @@ const createMessage = (messageObj,disableButtons = false) => {
         let deleteButtonIcon = document.createElement('i');
         deleteButtonIcon.setAttribute('class','bi bi-trash');
 
-        if(disableButtons) {
+        if(disableButtons) { //If disableButtons is activated is the function parameters then disable the edit and delete button.
             editButton.setAttribute('disabled','');
             deleteButton.setAttribute('disabled','');
             messageSenderName.removeEventListener('click',openUserProfile);
@@ -1177,7 +1540,7 @@ const createMessage = (messageObj,disableButtons = false) => {
 
 
 
-
+    //Emoji(react) section
     let emoji1 = messageObj.reacts.filter((reactObj) => reactObj.react === '128515');
     let emoji2 = messageObj.reacts.filter((reactObj) => reactObj.react === '128514');
     let emoji3 = messageObj.reacts.filter((reactObj) => reactObj.react === '128517');
@@ -1214,7 +1577,7 @@ const createMessage = (messageObj,disableButtons = false) => {
     });
 
     
-    if(disableButtons){
+    if(disableButtons){ //If disableButtons is activated is the function parameters then disable all buttons.
         pinButton.setAttribute('disabled','');
         emojiButton1.setAttribute('disabled','');
         emojiButton2.setAttribute('disabled','');
@@ -1242,16 +1605,9 @@ const createMessage = (messageObj,disableButtons = false) => {
 
 
 
-
-
-
-
-
-
-
-
 //Channel Details Section
 
+//Function that generates the Invitation Checkboxes on the Invite User Modal
 const generateInviteCheckBoxes = (userObj) => {
     let checkBoxContainerDiv = document.createElement('div');
     checkBoxContainerDiv.setAttribute('class','d-flex flex-row');
@@ -1279,17 +1635,19 @@ const generateInviteCheckBoxes = (userObj) => {
 
 
 
+//Function that is used to generate the channel Details section (Right section of the main page that shows the details of a channel)
 const getChannelDetails = (channelId, channelName) => {
     return new Promise( (resolve, reject) => {
-        let channelPageDiv = document.getElementById('channel-page-section');
-        let channelInformation =  apiCall(`channel/${channelId}`,'GET',null,null,false);
-        channelInformation.then((response) => {
+        //Hide the request error modal in the api call as the function uses the error response from the api to know if the user is in the channel or not
+        let channelInformation =  apiCall(`channel/${channelId}`,'GET',null,null,false); 
+        channelInformation.then((response) => { //If the Response of the api is succesfull, then the user is in the channel
             channelPageDiv.replaceChildren();
             let channelNameHeading = document.createElement('h5');
             channelNameHeading.textContent = channelName;
             channelNameHeading.setAttribute('class','text-wrap')
             channelPageDiv.appendChild(channelNameHeading);
             getObjectOfUserDetails(response.members).then((members) => {
+                //Edit Channel Section
                 let editChannelButton = document.createElement('button');
                 editChannelButton.setAttribute('class', 'btn btn-light border-dark-subtle  mb-2 me-md-2');
                 editChannelButton.textContent = 'Edit Channel';
@@ -1331,7 +1689,7 @@ const getChannelDetails = (channelId, channelName) => {
 
                 let editChannelModalEditButton = document.createElement('button');
                 editChannelModalEditButton.setAttribute('class','btn btn-primary');
-                editChannelModalEditButton.textContent = "Edit";
+                editChannelModalEditButton.textContent = 'Edit';
                 editChannelModalEditButton.addEventListener('click', (e) => {
                     let edittedChannelName = document.getElementById('edit-channel-name-field').value;
                     let edittedChannelDescription = document.getElementById('edit-channel-description-field').value;
@@ -1342,6 +1700,7 @@ const getChannelDetails = (channelId, channelName) => {
                     let editApiRequest = apiCall(`channel/${channelId}`,'PUT',editRequest);
                     editApiRequest.then( (editResponse) => {
                         if (!editResponse.error) {
+                            updateChannelNameInNotification(channelId,edittedChannelName);
                             refreshChannelList(channelId,editChannelModal);
                         }
                         
@@ -1350,6 +1709,9 @@ const getChannelDetails = (channelId, channelName) => {
 
                 editChannelModalFooter.prepend(editChannelModalEditButton);
 
+
+
+                //Leave Channel Section
                 let leaveChannelButton = document.createElement('button');
                 leaveChannelButton.setAttribute('class', 'btn btn-danger mb-2 me-md-2');
                 leaveChannelButton.textContent = 'Leave Channel';
@@ -1368,11 +1730,14 @@ const getChannelDetails = (channelId, channelName) => {
                     let leaveChannelApiRequest = apiCall(`channel/${channelId}/leave`,'POST');
                     leaveChannelApiRequest.then( (leaveResponse) => {
                         if (!leaveResponse.error){
+                            removeChannelFromNotification(channelId);
                             refreshChannelList(channelId,leaveChannelModal);
                         }
                     }).catch((e) => {})
                 })
 
+
+                //Pinned Messages Section
                 let pinnedMessageButton = document.createElement('button');
                 pinnedMessageButton.setAttribute('class', 'btn btn-light border border-dark me-md-2 mb-2');
                 pinnedMessageButton.textContent = 'View Pinned Messages';
@@ -1417,6 +1782,8 @@ const getChannelDetails = (channelId, channelName) => {
                         pinnedMessageModal.show();
                     })
                 })
+
+                //Invite to Channel Section
                 let inviteToChannelButton = document.createElement('button');
                 inviteToChannelButton.setAttribute('class', 'btn btn-light border border-dark mb-2');
                 inviteToChannelButton.textContent = 'Invite People';
@@ -1438,7 +1805,7 @@ const getChannelDetails = (channelId, channelName) => {
                 deselectAllButton.textContent = 'Deselect All';
                 let inviteModalInviteButton = document.createElement('button');
                 inviteModalInviteButton.setAttribute('class','btn btn-primary');
-                inviteModalInviteButton.textContent = "Invite";
+                inviteModalInviteButton.textContent = 'Invite';
                 inviteToChannelModalFooter.prepend(inviteModalInviteButton);
 
                 inviteToChannelButton.addEventListener('click',(e) => {
@@ -1498,7 +1865,6 @@ const getChannelDetails = (channelId, channelName) => {
                                 if(userIdsToInvite.length < 1){
                                     showMessageModal('Error','You need to select atleast 1 user to invite');
                                 } else {
-                                    console.log(userIdsToInvite);
                                     inviteMultipleUsers(userIdsToInvite,channelId).then((r) => {
                                         inviteToChannelModal.hide();
                                         getChannelDetails(channelId,channelName);
@@ -1514,8 +1880,9 @@ const getChannelDetails = (channelId, channelName) => {
                 let channelType = channelDetailsSectionGenerator('Channel Type',`${response.private?'Private':'Public'}`);
                 let channelCreator = channelDetailsSectionGenerator('Channel Creator',`${members[response.creator].name}`);
                 let channelCreationDate = channelDetailsSectionGenerator('Channel Creation Date:',convertDateToDDMMYY(response.createdAt));
-                let channelDescription = channelDetailsSectionGenerator('Channel Description',response.description.length === 0? "No Description":response.description);
+                let channelDescription = channelDetailsSectionGenerator('Channel Description',response.description.length === 0? 'No Description':response.description);
                 
+                //Populate Channel members in the channel details
                 let channelMembersText = document.createElement('p');
                 channelMembersText.setAttribute('class','fs-6 mb-0');
                 channelMembersText.textContent = 'Channel Members:'
@@ -1530,8 +1897,6 @@ const getChannelDetails = (channelId, channelName) => {
                     }
                     sortedMembers.push(userObject);
                 }
-                console.log(sortedMembers);
-
 
                 sortedMembers.sort((a,b) => {
                     if (a.name.toLowerCase() < b.name.toLowerCase()) {
@@ -1544,10 +1909,8 @@ const getChannelDetails = (channelId, channelName) => {
                 
                 });
 
-                console.log(sortedMembers);
-
+     
                 for (let member of sortedMembers){
-                    // console.log(member);
                     let liObj = document.createElement('li');
                     liObj.setAttribute('class','px-1 py-1 text-nowrap');
                     let aObj = document.createElement('a');
@@ -1567,7 +1930,7 @@ const getChannelDetails = (channelId, channelName) => {
                 channelPageDiv.appendChild(ulObject);
                 resolve([members,true]);
                 }).catch((e) => {})
-        }).catch((e) => {
+        }).catch((e) => { //If the user is not in channel then just show the channel name and join button
             if(e !== 'Server Error'){
                 channelPageDiv.replaceChildren();
                 let channelNameHeading = document.createElement('h5');
@@ -1583,6 +1946,7 @@ const getChannelDetails = (channelId, channelName) => {
                     let joinChannel =  apiCall(`channel/${channelId}/join`,'POST');
                     joinChannel.then( (response) => {
                         if (!response.error) {
+                            addJoinedChannelToNotification(channelId);
                             refreshChannelList(channelId)
                         }
                     }).catch((e) => {})
@@ -1597,10 +1961,10 @@ const getChannelDetails = (channelId, channelName) => {
 
 
 //Create Channel Section
-
-getAllChannels().catch((e) => {});
-
 let createChannelButton = document.getElementById('create-channel-button');
+
+
+//Bind a function that will display the create channel modal that allow the user to create a new channel when clicking the createChannelButton
 createChannelButton.addEventListener('click', (e) => {
     let modal = createBasicModalStructure();
     let myModal = new bootstrap.Modal(modal);
@@ -1638,14 +2002,14 @@ createChannelButton.addEventListener('click', (e) => {
             },
             selectOptions: [
                 {
-                    displayText: "Public",
+                    displayText: 'Public',
                     attributes: {
                         value: 'public',
                         selected: ''
                     }
                 },
                 {
-                    displayText: "Private",
+                    displayText: 'Private',
                     attributes: {
                         value: 'private'
                     }
@@ -1658,7 +2022,7 @@ createChannelButton.addEventListener('click', (e) => {
     modalBody.appendChild(formObj);
     let createButton = document.createElement('button');
     createButton.setAttribute('class', 'btn btn-primary');
-    createButton.textContent = "Create Channel";
+    createButton.textContent = 'Create Channel';
     createButton.addEventListener('click', (e) => {
         let channelName = document.getElementById('create-channel-name-field').value;
         let channelDescription = document.getElementById('create-channel-description-field').value;
@@ -1679,14 +2043,12 @@ createChannelButton.addEventListener('click', (e) => {
 })
 
 
-
-window.addEventListener("hashchange",() => {
+// Fragment Based URL Routing
+window.addEventListener('hashchange',() => {
     let mainPage = document.getElementById('main-page');
     if(!mainPage.classList.contains('d-none')){
         let urlFragment = location.hash.split('=');
         if (urlFragment[0] === '#channel'){
-            console.log(urlFragment[0]);
-            console.log(urlFragment[1]);
             getChannelData(urlFragment[1]);
         } else if (urlFragment[0] === '#profile') {
             let userId = ''
@@ -1701,17 +2063,7 @@ window.addEventListener("hashchange",() => {
             })
         }
     }
-
 });
 
 
-document.getElementById('notification-button').addEventListener('click', (e) => {
-    // createMessage();
-    // console.log(`Element Scroll height is ${messageWindow.scrollHeight}`);
-    // console.log(`Element Offset height is ${messageWindow.offsetHeight}`);
-    // console.log(`Element Scroll Top is ${messageWindow.scrollTop}`);
-    // console.log(`Element height + scroll is ${messageWindow.offsetHeight + messageWindow.scrollTop}`);
-    console.log(profileButton.style.backgroundImage);
-
-})
 
